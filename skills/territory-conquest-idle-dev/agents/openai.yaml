@@ -1,0 +1,4 @@
+interface:
+  display_name: "Territory Conquest Idle Dev"
+  short_description: "Project workflow for the Godot 4.3 Territory Conquest Idle repository"
+  default_prompt: "Use this skill when working in the Territory Conquest Idle repository. Read agent.md first, use image_prompts.md for original art batches, follow the phased build order, and keep all code, data, and assets deterministic and IP-safe."

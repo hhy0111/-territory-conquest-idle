@@ -1,0 +1,100 @@
+[
+  {
+    "id": "relic_sharp_edge",
+    "name": "Sharp Edge",
+    "rarity": "common",
+    "tags": ["attack"],
+    "effect": { "attack_flat": 3 }
+  },
+  {
+    "id": "relic_field_plate",
+    "name": "Field Plate",
+    "rarity": "common",
+    "tags": ["defense"],
+    "effect": { "armor_flat": 4 }
+  },
+  {
+    "id": "relic_ranger_glove",
+    "name": "Ranger Glove",
+    "rarity": "common",
+    "tags": ["crit"],
+    "effect": { "crit_rate": 0.05 }
+  },
+  {
+    "id": "relic_storm_dial",
+    "name": "Storm Dial",
+    "rarity": "common",
+    "tags": ["speed"],
+    "effect": { "attack_speed": 0.14 }
+  },
+  {
+    "id": "relic_bastion_spike",
+    "name": "Bastion Spike",
+    "rarity": "common",
+    "tags": ["hybrid"],
+    "effect": { "attack_flat": 2, "armor_flat": 2 }
+  },
+  {
+    "id": "relic_blood_oath",
+    "name": "Blood Oath",
+    "rarity": "rare",
+    "tags": ["lifesteal"],
+    "effect": { "lifesteal": 0.04 }
+  },
+  {
+    "id": "relic_command_seal",
+    "name": "Command Seal",
+    "rarity": "rare",
+    "tags": ["territory"],
+    "effect": { "territory_power": 0.05 }
+  },
+  {
+    "id": "relic_lucky_map",
+    "name": "Lucky Map",
+    "rarity": "common",
+    "tags": ["economy"],
+    "effect": { "luck": 1 }
+  },
+  {
+    "id": "relic_surveyor_lens",
+    "name": "Surveyor Lens",
+    "rarity": "rare",
+    "tags": ["tempo", "economy"],
+    "effect": { "territory_power": 0.04, "luck": 1 }
+  },
+  {
+    "id": "relic_trophy_chain",
+    "name": "Trophy Chain",
+    "rarity": "rare",
+    "tags": ["crit", "lifesteal"],
+    "effect": { "crit_rate": 0.04, "lifesteal": 0.02 }
+  },
+  {
+    "id": "relic_war_horn",
+    "name": "War Horn",
+    "rarity": "rare",
+    "tags": ["skill"],
+    "effect": { "grant_skill": "command_volley" }
+  },
+  {
+    "id": "relic_ashen_mandate",
+    "name": "Ashen Mandate",
+    "rarity": "rare",
+    "tags": ["skill"],
+    "effect": { "grant_skill": "shrapnel_burst" }
+  },
+  {
+    "id": "relic_iron_standard",
+    "name": "Iron Standard",
+    "rarity": "rare",
+    "tags": ["trait"],
+    "effect": { "grant_trait": "execution_order" }
+  },
+  {
+    "id": "relic_watchful_totem",
+    "name": "Watchful Totem",
+    "rarity": "rare",
+    "tags": ["trait"],
+    "effect": { "grant_trait": "iron_reflexes" }
+  }
+]

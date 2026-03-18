@@ -1,0 +1,200 @@
+[
+  {
+    "id": "blood_shrine",
+    "title": "Blood Shrine",
+    "description": "An old altar demands a price for power.",
+    "phase_tags": ["early", "mid"],
+    "choices": [
+      {
+        "id": "offer_blood",
+        "label": "Offer Blood",
+        "cost": { "current_hp_percent": 0.2 },
+        "reward": { "attack_percent": 0.18 },
+        "danger_delta": 6
+      },
+      {
+        "id": "walk_away",
+        "label": "Walk Away",
+        "cost": {},
+        "reward": { "essence_on_run_end": 6 },
+        "danger_delta": 0
+      }
+    ]
+  },
+  {
+    "id": "cursed_banner",
+    "title": "Cursed Banner",
+    "description": "A torn war standard offers conquest at a cost.",
+    "phase_tags": ["mid", "late"],
+    "choices": [
+      {
+        "id": "raise_it",
+        "label": "Raise the Banner",
+        "cost": { "curse": "curse_fragile_1" },
+        "reward": { "territory_power": 0.08 },
+        "danger_delta": 8
+      },
+      {
+        "id": "burn_it",
+        "label": "Burn It",
+        "cost": {},
+        "reward": { "gold": 18 },
+        "danger_delta": 1
+      }
+    ]
+  },
+  {
+    "id": "ruined_caravan",
+    "title": "Ruined Caravan",
+    "description": "The dead carried supplies and secrets.",
+    "phase_tags": ["early", "mid"],
+    "choices": [
+      {
+        "id": "loot_fast",
+        "label": "Loot Fast",
+        "cost": {},
+        "reward": { "gold": 22 },
+        "danger_delta": 3
+      },
+      {
+        "id": "search_carefully",
+        "label": "Search Carefully",
+        "cost": {},
+        "reward": { "xp": 18 },
+        "danger_delta": 0
+      }
+    ]
+  },
+  {
+    "id": "sealed_cache",
+    "title": "Sealed Cache",
+    "description": "A military cache sits under broken locks and unstable charges.",
+    "phase_tags": ["early", "mid"],
+    "choices": [
+      {
+        "id": "crack_the_locks",
+        "label": "Crack the Locks",
+        "cost": { "current_hp_percent": 0.15 },
+        "reward": { "gold": 28, "xp": 12 },
+        "danger_delta": 4
+      },
+      {
+        "id": "salvage_toolkits",
+        "label": "Salvage Toolkits",
+        "cost": {},
+        "reward": { "armor_flat": 2, "gold": 12 },
+        "danger_delta": 1
+      }
+    ]
+  },
+  {
+    "id": "frontier_scribes",
+    "title": "Frontier Scribes",
+    "description": "Cartographers offer hard-earned routes and hidden ledgers for a price.",
+    "phase_tags": ["early", "mid", "late"],
+    "choices": [
+      {
+        "id": "study_the_maps",
+        "label": "Study the Maps",
+        "cost": { "gold_flat": 12 },
+        "reward": { "xp": 16, "luck": 1 },
+        "danger_delta": 0
+      },
+      {
+        "id": "commission_routes",
+        "label": "Commission Routes",
+        "cost": { "gold_flat": 18 },
+        "reward": { "essence_on_run_end": 10, "sigils_on_run_end": 1 },
+        "danger_delta": 2
+      }
+    ]
+  },
+  {
+    "id": "oath_stone",
+    "title": "Oath Stone",
+    "description": "A ceremonial slab still answers those willing to swear to conquest.",
+    "phase_tags": ["mid", "late"],
+    "choices": [
+      {
+        "id": "swear_the_oath",
+        "label": "Swear the Oath",
+        "cost": { "current_hp_percent": 0.15 },
+        "reward": { "armor_flat": 3, "grant_trait": "march_supremacy" },
+        "danger_delta": 5
+      },
+      {
+        "id": "break_the_slab",
+        "label": "Break the Slab",
+        "cost": {},
+        "reward": { "gold": 20, "attack_flat": 2 },
+        "danger_delta": 1
+      }
+    ]
+  },
+  {
+    "id": "rift_tithe",
+    "title": "Rift Tithe",
+    "description": "A crack in reality hums with impossible bargains.",
+    "phase_tags": ["late"],
+    "choices": [
+      {
+        "id": "accept_the_tithe",
+        "label": "Accept the Tithe",
+        "cost": { "curse": "curse_hollow_1" },
+        "reward": { "sigils_on_run_end": 1, "crit_rate": 0.04 },
+        "danger_delta": 5
+      },
+      {
+        "id": "seal_the_tear",
+        "label": "Seal the Tear",
+        "cost": { "current_hp_percent": 0.1 },
+        "reward": { "essence_on_run_end": 14, "territory_power": 0.05 },
+        "danger_delta": 1
+      }
+    ]
+  },
+  {
+    "id": "survivor_encampment",
+    "title": "Survivor Encampment",
+    "description": "A hardened band of civilians offers labor, medicine, and scouts.",
+    "phase_tags": ["mid", "late"],
+    "choices": [
+      {
+        "id": "recruit_scouts",
+        "label": "Recruit Scouts",
+        "cost": { "gold_flat": 14 },
+        "reward": { "attack_speed": 0.12, "xp": 12 },
+        "danger_delta": 2
+      },
+      {
+        "id": "aid_the_wounded",
+        "label": "Aid the Wounded",
+        "cost": { "gold_flat": 10 },
+        "reward": { "heal_percent": 0.35, "max_hp_flat": 8 },
+        "danger_delta": 0
+      }
+    ]
+  },
+  {
+    "id": "smuggler_contract",
+    "title": "Smuggler Contract",
+    "description": "Black-market artillery passes hands under a torn command seal.",
+    "phase_tags": ["late"],
+    "choices": [
+      {
+        "id": "sign_the_contract",
+        "label": "Sign the Contract",
+        "cost": { "gold_flat": 18 },
+        "reward": { "grant_skill": "shrapnel_burst", "gold": 10 },
+        "danger_delta": 3
+      },
+      {
+        "id": "confiscate_the_goods",
+        "label": "Confiscate the Goods",
+        "cost": {},
+        "reward": { "armor_flat": 2, "attack_flat": 2, "essence_on_run_end": 6 },
+        "danger_delta": 1
+      }
+    ]
+  }
+]

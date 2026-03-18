@@ -1,0 +1,40 @@
+; Engine configuration file.
+; It is best edited using the editor and not directly.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Territory Conquest Idle"
+run/main_scene="res://scenes/app/main.tscn"
+config/features=PackedStringArray("4.3")
+config/icon="res://icon.svg"
+
+[autoload]
+
+GameState="*res://scripts/autoload/game_state.gd"
+SaveService="*res://scripts/autoload/save_service.gd"
+DataService="*res://scripts/autoload/data_service.gd"
+RngService="*res://scripts/autoload/rng_service.gd"
+AdService="*res://scripts/autoload/ad_service.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+
+[physics]
+
+common/physics_ticks_per_second=60

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "cmd_attack_1",
+    "tree": "command",
+    "name": "Sharpened Orders",
+    "description": "Increase starting attack for every run.",
+    "cost_essence": 25,
+    "cost_sigils": 0,
+    "max_rank": 5,
+    "effect": { "base_attack_flat": 2 }
+  },
+  {
+    "id": "cmd_hp_1",
+    "tree": "command",
+    "name": "Drilled Reserves",
+    "description": "Increase starting max HP for every run.",
+    "cost_essence": 25,
+    "cost_sigils": 0,
+    "max_rank": 5,
+    "effect": { "base_hp_flat": 10 }
+  },
+  {
+    "id": "cmd_armor_1",
+    "tree": "command",
+    "name": "Frontline Plating",
+    "description": "Increase starting armor.",
+    "cost_essence": 28,
+    "cost_sigils": 0,
+    "max_rank": 4,
+    "effect": { "base_armor_flat": 2 }
+  },
+  {
+    "id": "cmd_precision_1",
+    "tree": "command",
+    "name": "Measured Fire",
+    "description": "Increase starting critical rate.",
+    "cost_essence": 35,
+    "cost_sigils": 1,
+    "max_rank": 4,
+    "effect": { "base_crit_rate_flat": 0.02 }
+  },
+  {
+    "id": "logistics_gold_1",
+    "tree": "logistics",
+    "name": "Packed Supplies",
+    "description": "Start each run with additional gold.",
+    "cost_essence": 20,
+    "cost_sigils": 0,
+    "max_rank": 5,
+    "effect": { "starting_gold_flat": 5 }
+  },
+  {
+    "id": "logistics_luck_1",
+    "tree": "logistics",
+    "name": "Route Familiarity",
+    "description": "Increase starting luck.",
+    "cost_essence": 24,
+    "cost_sigils": 0,
+    "max_rank": 4,
+    "effect": { "starting_luck_flat": 1 }
+  },
+  {
+    "id": "logistics_salvage_1",
+    "tree": "logistics",
+    "name": "Salvage Ledgers",
+    "description": "Increase total essence gained at the end of a run.",
+    "cost_essence": 40,
+    "cost_sigils": 1,
+    "max_rank": 3,
+    "effect": { "essence_gain_percent": 0.08 }
+  },
+  {
+    "id": "command_recovery_1",
+    "tree": "command",
+    "name": "Field Reconstruction",
+    "description": "Heal after every boss victory.",
+    "cost_essence": 35,
+    "cost_sigils": 1,
+    "max_rank": 3,
+    "effect": { "heal_after_boss_percent": 0.12 }
+  },
+  {
+    "id": "legacy_bounty_1",
+    "tree": "legacy",
+    "name": "Trophy Tribute",
+    "description": "Increase boss kill rewards.",
+    "cost_essence": 50,
+    "cost_sigils": 1,
+    "max_rank": 2,
+    "effect": { "boss_reward_essence_flat": 6, "boss_reward_sigil_flat": 1 }
+  },
+  {
+    "id": "legacy_relic_choice_1",
+    "tree": "legacy",
+    "name": "Spoils Catalogue",
+    "description": "See one extra relic option whenever relics are offered.",
+    "cost_essence": 60,
+    "cost_sigils": 2,
+    "max_rank": 1,
+    "effect": { "relic_offer_extra_choices": 1 }
+  },
+  {
+    "id": "legacy_tactics_1",
+    "tree": "legacy",
+    "name": "Doctrine Archive",
+    "description": "See one extra run-upgrade option on level-up.",
+    "cost_essence": 45,
+    "cost_sigils": 1,
+    "max_rank": 1,
+    "effect": { "run_upgrade_offer_extra_choices": 1 }
+  },
+  {
+    "id": "legacy_victory_seal_1",
+    "tree": "legacy",
+    "name": "Victory Seal",
+    "description": "Gain extra sigils on victorious runs.",
+    "cost_essence": 55,
+    "cost_sigils": 2,
+    "max_rank": 2,
+    "effect": { "victory_sigils_flat": 1 }
+  }
+]

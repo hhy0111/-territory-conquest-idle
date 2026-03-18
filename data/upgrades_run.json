@@ -1,0 +1,128 @@
+[
+  {
+    "id": "run_blade_drill",
+    "name": "Blade Drill",
+    "rarity": "common",
+    "max_rank": 5,
+    "effect": { "attack_flat": 3 }
+  },
+  {
+    "id": "run_guard_stance",
+    "name": "Guard Stance",
+    "rarity": "common",
+    "max_rank": 5,
+    "effect": { "armor_flat": 2 }
+  },
+  {
+    "id": "run_quick_orders",
+    "name": "Quick Orders",
+    "rarity": "common",
+    "max_rank": 4,
+    "effect": { "attack_speed": 0.12 }
+  },
+  {
+    "id": "run_battlefield_medicine",
+    "name": "Battlefield Medicine",
+    "rarity": "common",
+    "max_rank": 4,
+    "effect": { "max_hp_flat": 12, "heal_flat": 12 }
+  },
+  {
+    "id": "run_critical_path",
+    "name": "Critical Path",
+    "rarity": "rare",
+    "max_rank": 4,
+    "effect": { "crit_rate": 0.04 }
+  },
+  {
+    "id": "run_frontier_tithe",
+    "name": "Frontier Tithe",
+    "rarity": "common",
+    "max_rank": 4,
+    "effect": { "gold_flat": 15, "luck": 1 }
+  },
+  {
+    "id": "run_claimant_banner",
+    "name": "Claimant Banner",
+    "rarity": "rare",
+    "max_rank": 4,
+    "effect": { "territory_power": 0.05 }
+  },
+  {
+    "id": "run_salvage_crews",
+    "name": "Salvage Crews",
+    "rarity": "rare",
+    "max_rank": 3,
+    "effect": { "gold_flat": 12, "essence_on_run_end_flat": 6 }
+  },
+  {
+    "id": "run_tactical_gambit",
+    "name": "Tactical Gambit",
+    "rarity": "rare",
+    "max_rank": 3,
+    "effect": { "attack_speed": 0.08, "crit_rate": 0.03 }
+  },
+  {
+    "id": "run_rallying_tonic",
+    "name": "Rallying Tonic",
+    "rarity": "common",
+    "max_rank": 3,
+    "effect": { "heal_flat": 16, "attack_flat": 2 }
+  },
+  {
+    "id": "run_ember_doctrine",
+    "name": "Ember Doctrine",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_skill": "ember_rounds" }
+  },
+  {
+    "id": "run_breaker_orders",
+    "name": "Breaker Orders",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_skill": "breaker_strike" }
+  },
+  {
+    "id": "run_shrapnel_plan",
+    "name": "Shrapnel Plan",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_skill": "shrapnel_burst" }
+  },
+  {
+    "id": "run_bulwark_drive",
+    "name": "Bulwark Drive",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_skill": "bulwark_drive" }
+  },
+  {
+    "id": "run_veteran_resolve",
+    "name": "Veteran Resolve",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_trait": "veteran_resolve" }
+  },
+  {
+    "id": "run_battle_instinct",
+    "name": "Battle Instinct",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_trait": "unyielding_standard" }
+  },
+  {
+    "id": "run_iron_reflexes",
+    "name": "Iron Reflexes",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_trait": "iron_reflexes" }
+  },
+  {
+    "id": "run_march_supremacy",
+    "name": "March Supremacy",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_trait": "march_supremacy" }
+  }
+]
