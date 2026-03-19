@@ -37,6 +37,17 @@
 - Store balance values in data files, not hardcoded scene scripts
 - Do not add external dependencies unless a built-in Godot feature is insufficient
 
+## Companion Documents
+
+- `project_status.md`
+  - current implementation snapshot, validation status, document map, remaining work
+- `admob_setup.md`
+  - Android AdMob app id, slot ids, runtime mapping, UMP integration checklist
+- `asset_import_report.md`
+  - asset import coverage, placeholder usage, review-pending sources
+- `asset_regeneration_list.md`
+  - regenerated assets and remaining review-pending originals
+
 ## 2. Core Gameplay Loop
 
 1. Load persistent profile and meta upgrades.
@@ -555,6 +566,49 @@ Handle both run progression and permanent account growth.
   - `show_interstitial()`
 - Ship MVP with mock editor-only ad service and no live SDK
 - Keep monetization code isolated from core gameplay logic
+
+### Registered Android Ad Units
+
+**Recorded On**
+
+- `2026-03-18`
+
+**App Name**
+
+- `Territory Conquest Idle`
+
+**Android Build Identity**
+
+- package name: `com.hhy0111.territoryconquestidle`
+- AdMob app id: `ca-app-pub-4402708884038037~2144372327`
+
+**Live Android Slots**
+
+- `app_open_launch`
+  - format: `App Open`
+  - ad unit id: `ca-app-pub-4402708884038037/8456964387`
+  - usage: show only on cold start or long background return loading gate
+- `interstitial_run_end`
+  - format: `Interstitial`
+  - ad unit id: `ca-app-pub-4402708884038037/8437750689`
+  - usage: show only after result flow ends or on return to home under gating rules
+- `rewarded_bonus_reroll`
+  - format: `Rewarded`
+  - ad unit id: `ca-app-pub-4402708884038037/7699384083`
+  - usage: one reroll reward for relic, run upgrade, or event choice flow
+- `rewarded_double_run_reward`
+  - format: `Rewarded`
+  - ad unit id: `ca-app-pub-4402708884038037/5585456719`
+  - usage: result screen reward multiplier, doubles essence only
+- `rewarded_revive`
+  - format: `Rewarded`
+  - ad unit id: `ca-app-pub-4402708884038037/1017458066`
+  - usage: one revive per run on defeat, disabled during final boss second phase
+
+**Missing Integration Inputs**
+
+- Consent policy decision fixed: `UMP enabled`
+- Production analytics mapping for ad impression and reward events
 
 ## 11. UI/UX Structure
 
@@ -1083,6 +1137,7 @@ Prepare the game for production mobile deployment.
 - Analytics event hooks
 - Accessibility pass for color contrast and text size
 - Export presets for Android release builds
+- Android AdMob app id integration and slot config file
 
 ## 18. Technical Design
 

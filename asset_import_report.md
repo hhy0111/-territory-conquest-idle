@@ -1,5 +1,11 @@
 # Asset Import Report
 
+## Status Note
+
+- This report is the initial import snapshot recorded on `2026-03-18`.
+- Current authoritative regeneration status lives in `asset_regeneration_list.md`.
+- As of the latest regeneration pass, there are no remaining assets that require re-requesting.
+
 - Processed targets: 105
 - Unique source files consumed: 100
 - Review-pending source files: 7
