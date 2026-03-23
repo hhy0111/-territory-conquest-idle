@@ -24,5 +24,6 @@ func run() -> Array:
 		failures.append("Expected serialized profile essence to round-trip.")
 	if int(parsed.get("active_run", {}).get("captured_tiles", 0)) != 3:
 		failures.append("Expected serialized active run to round-trip.")
+	service.free()
 
 	return failures

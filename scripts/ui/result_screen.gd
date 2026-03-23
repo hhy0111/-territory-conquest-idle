@@ -2,8 +2,13 @@ extends Control
 
 const UISkin = preload("res://scripts/ui/ui_skin.gd")
 
+var status_label: Label
+var pending_rewarded_slot_id := ""
+var pending_exit_target := ""
+
 
 func _ready() -> void:
+	_connect_ad_signals()
 	UISkin.install_screen_background(self, UISkin.screen_background("result"), Color(0.03, 0.04, 0.05, 0.7))
 	_build_ui()
 
@@ -36,6 +41,14 @@ func _build_ui() -> void:
 	content.add_child(_build_section("Build", _build_text(result), UISkin.icon_texture("relic")))
 	content.add_child(_build_section("Territory", _territory_text(result), UISkin.icon_texture("boss")))
 
+	if _can_show_double_reward_button():
+		var reward_button := Button.new()
+		reward_button.text = "Watch Ad: Double Essence (+%s)" % int(result.get("essence_gain", 0))
+		reward_button.custom_minimum_size = Vector2(0, 78)
+		UISkin.apply_button_style(reward_button, "primary")
+		reward_button.pressed.connect(_on_double_reward_pressed)
+		column.add_child(reward_button)
+
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	column.add_child(actions)
@@ -63,6 +76,9 @@ func _build_ui() -> void:
 	UISkin.apply_button_style(home_button, "secondary")
 	home_button.pressed.connect(_on_home_pressed)
 	actions.add_child(home_button)
+
+	status_label = UISkin.body_label("", UISkin.TEXT_ACCENT, 18)
+	column.add_child(status_label)
 
 
 func _build_header() -> Control:
@@ -101,6 +117,8 @@ func _build_header() -> Control:
 	chips.add_theme_constant_override("v_separation", 10)
 	copy.add_child(chips)
 	chips.add_child(UISkin.make_badge("Essence +%s" % result.get("essence_gain", 0), UISkin.icon_texture("essence"), "currency"))
+	if int(result.get("double_essence_bonus", 0)) > 0:
+		chips.add_child(UISkin.make_badge("Ad Bonus +%s" % result.get("double_essence_bonus", 0), UISkin.icon_texture("reward"), "currency"))
 	chips.add_child(UISkin.make_badge("Sigils +%s" % result.get("sigil_gain", 0), UISkin.icon_texture("sigil"), "currency"))
 	chips.add_child(UISkin.make_badge("Bosses %s" % result.get("bosses_defeated", 0), UISkin.icon_texture("boss")))
 
@@ -115,6 +133,7 @@ func _summary_text(result: Dictionary) -> String:
 		"Outcome: %s" % ("Victory" if result.get("victory", false) else "Defeat"),
 		"Captures: %s" % result.get("captures", 0),
 		"Bosses Defeated: %s" % result.get("bosses_defeated", 0),
+		"Double Essence Reward Claimed: %s" % ("Yes" if result.get("double_essence_claimed", false) else "No"),
 		"Ending HP: %s / %s" % [player.get("current_hp", 0), player.get("max_hp", 0)],
 		"Highest Danger: %s" % map_stats.get("highest_danger", result.get("final_danger", 0)),
 		"Final Attack / Armor: %s / %s" % [player.get("attack", 0), player.get("armor", 0)],
@@ -168,6 +187,7 @@ func _economy_text(result: Dictionary) -> String:
 		"XP From Events: %s" % economy_stats.get("xp_from_events", 0),
 		"XP From Utilities: %s" % economy_stats.get("xp_from_utilities", 0),
 		"Essence Gain: %s" % result.get("essence_gain", 0),
+		"Ad Bonus Essence: %s" % result.get("double_essence_bonus", 0),
 		"Essence Bonus Pool: %s" % result.get("bonus_essence", 0),
 		"Essence Bonus From Events: %s" % economy_stats.get("essence_bonus_from_events", 0),
 		"Essence Bonus From Run Upgrades: %s" % economy_stats.get("essence_bonus_from_upgrades", 0),
@@ -297,15 +317,118 @@ func _pretty_id(value: String) -> String:
 	return " ".join(title_parts)
 
 
+func _can_show_double_reward_button() -> bool:
+	return AdService.is_rewarded_ready() and GameState.can_claim_double_run_reward()
+
+
+func _on_double_reward_pressed() -> void:
+	if _has_pending_ad_action():
+		return
+	if not _can_show_double_reward_button():
+		return
+	pending_rewarded_slot_id = "rewarded_double_run_reward"
+	status_label.text = "Opening rewarded bonus..."
+	if not AdService.show_rewarded("rewarded_double_run_reward"):
+		pending_rewarded_slot_id = ""
+		status_label.text = "Rewarded bonus could not be shown."
+		return
+
+
 func _on_next_run_pressed() -> void:
-	GameState.start_new_run()
-	SaveService.persist()
-	get_tree().current_scene.show_run()
+	_begin_exit("next_run")
 
 
 func _on_meta_pressed() -> void:
-	get_tree().current_scene.show_meta()
+	_begin_exit("meta")
 
 
 func _on_home_pressed() -> void:
-	get_tree().current_scene.show_home()
+	_begin_exit("home")
+
+
+func _has_pending_ad_action() -> bool:
+	return not pending_rewarded_slot_id.is_empty() or not pending_exit_target.is_empty()
+
+
+func _begin_exit(exit_target: String) -> void:
+	if _has_pending_ad_action():
+		return
+
+	var gate := GameState.begin_run_end_interstitial(exit_target)
+	if not gate.get("accepted", false):
+		_continue_exit(exit_target)
+		return
+	pending_exit_target = exit_target
+	status_label.text = "Showing interstitial..."
+	if not AdService.show_interstitial():
+		pending_exit_target = ""
+		GameState.abandon_run_end_interstitial()
+		_continue_exit(exit_target)
+		return
+
+
+func _continue_exit(exit_target: String) -> void:
+	match exit_target:
+		"next_run":
+			GameState.start_new_run()
+			SaveService.persist()
+			get_tree().current_scene.show_run()
+		"meta":
+			SaveService.persist()
+			get_tree().current_scene.show_meta()
+		_:
+			SaveService.persist()
+			get_tree().current_scene.show_home()
+
+
+func _connect_ad_signals() -> void:
+	if not AdService.rewarded_completed.is_connected(_on_rewarded_completed):
+		AdService.rewarded_completed.connect(_on_rewarded_completed)
+	if not AdService.rewarded_failed.is_connected(_on_rewarded_failed):
+		AdService.rewarded_failed.connect(_on_rewarded_failed)
+	if not AdService.interstitial_closed.is_connected(_on_interstitial_closed):
+		AdService.interstitial_closed.connect(_on_interstitial_closed)
+	if not AdService.interstitial_failed.is_connected(_on_interstitial_failed):
+		AdService.interstitial_failed.connect(_on_interstitial_failed)
+
+
+func _on_rewarded_completed(slot_key: String) -> void:
+	if pending_rewarded_slot_id != "rewarded_double_run_reward" or slot_key != pending_rewarded_slot_id:
+		return
+
+	pending_rewarded_slot_id = ""
+	var result := GameState.claim_double_run_reward()
+	if not result.get("ok", false):
+		status_label.text = String(result.get("message", "Rewarded bonus failed."))
+		return
+
+	SaveService.persist()
+	get_tree().current_scene.show_result()
+
+
+func _on_rewarded_failed(slot_key: String, _reason: String) -> void:
+	if pending_rewarded_slot_id != "rewarded_double_run_reward" or slot_key != pending_rewarded_slot_id:
+		return
+
+	pending_rewarded_slot_id = ""
+	status_label.text = "Rewarded bonus could not be completed."
+
+
+func _on_interstitial_closed(slot_key: String) -> void:
+	if pending_exit_target.is_empty() or slot_key != "interstitial_run_end":
+		return
+
+	var exit_target := pending_exit_target
+	pending_exit_target = ""
+	GameState.complete_run_end_interstitial()
+	_continue_exit(exit_target)
+
+
+func _on_interstitial_failed(slot_key: String, _reason: String) -> void:
+	if pending_exit_target.is_empty() or slot_key != "interstitial_run_end":
+		return
+
+	var exit_target := pending_exit_target
+	pending_exit_target = ""
+	GameState.abandon_run_end_interstitial()
+	_continue_exit(exit_target)

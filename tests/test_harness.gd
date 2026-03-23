@@ -1,18 +1,22 @@
 extends Node
 
 const TestCombatMath = preload("res://tests/test_combat_math.gd")
+const TestContentData = preload("res://tests/test_content_data.gd")
 const TestEventResolution = preload("res://tests/test_event_resolution.gd")
 const TestGameStateResolution = preload("res://tests/test_game_state_resolution.gd")
 const TestMapGeneration = preload("res://tests/test_map_generation.gd")
+const TestRunSimulation = preload("res://tests/test_run_simulation.gd")
 const TestSaveLoad = preload("res://tests/test_save_load.gd")
 
 
 func _ready() -> void:
 	var suites := [
 		{ "name": "combat_math", "suite": TestCombatMath.new() },
+		{ "name": "content_data", "suite": TestContentData.new() },
 		{ "name": "event_resolution", "suite": TestEventResolution.new() },
 		{ "name": "game_state_resolution", "suite": TestGameStateResolution.new() },
 		{ "name": "map_generation", "suite": TestMapGeneration.new() },
+		{ "name": "run_simulation", "suite": TestRunSimulation.new() },
 		{ "name": "save_load", "suite": TestSaveLoad.new() }
 	]
 

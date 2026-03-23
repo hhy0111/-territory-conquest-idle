@@ -112,32 +112,19 @@ func _build_action_card() -> Control:
 	meta_button.pressed.connect(_on_meta_pressed)
 	content.add_child(meta_button)
 
-	var disabled_row := HBoxContainer.new()
-	disabled_row.add_theme_constant_override("separation", 12)
-	content.add_child(disabled_row)
-
-	var compendium_button := Button.new()
-	compendium_button.text = "Compendium"
-	compendium_button.disabled = true
-	compendium_button.custom_minimum_size = Vector2(0, 72)
-	compendium_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UISkin.apply_button_style(compendium_button, "secondary")
-	disabled_row.add_child(compendium_button)
-
-	var settings_button := Button.new()
-	settings_button.text = "Settings"
-	settings_button.disabled = true
-	settings_button.custom_minimum_size = Vector2(0, 72)
-	settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UISkin.apply_button_style(settings_button, "secondary")
-	disabled_row.add_child(settings_button)
+	var briefing := UISkin.body_label(
+		"Run progress is saved automatically on background. Meta purchases save immediately, and cleared runs feed permanent doctrine growth.",
+		UISkin.TEXT_MUTED,
+		16
+	)
+	content.add_child(briefing)
 
 	return panel
 
 
 func _active_run_summary() -> String:
 	if not GameState.has_active_run():
-		return "No active run. Start a new campaign and claim 12 tiles to clear the current prototype route."
+		return "No active run. Start a new campaign and secure %s frontier tiles to clear the current route." % GameState.get_run_capture_goal()
 
 	var run: Dictionary = GameState.active_run
 	var player: Dictionary = run.get("player", {})

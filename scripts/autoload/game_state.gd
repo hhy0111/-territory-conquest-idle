@@ -2,6 +2,16 @@ extends Node
 
 const SAVE_VERSION := 1
 const RUN_CAPTURE_GOAL := 11
+const BONUS_REROLL_MIN_LEVEL := 3
+const FIRST_BOSS_RALLY_HEAL_RATIO := 0.18
+const BOSS_VICTORY_HEAL_RATIO := 0.10
+const FIRST_BOSS_VICTORY_DANGER_REDUCTION := 8
+const REWARDED_REVIVE_HEAL_RATIO := 0.5
+const REWARDED_REVIVE_DANGER_REDUCTION := 10
+const INTERSTITIAL_MIN_INTERVAL_SECONDS := 480
+const INTERSTITIAL_MIN_LONG_RUN_SECONDS := 180
+const INTERSTITIAL_REQUIRED_SESSION_COUNT := 2
+const INTERSTITIAL_REQUIRED_RUNS := 2
 const MapGeneratorScript = preload("res://scripts/map/map_generator.gd")
 const TileResolverScript = preload("res://scripts/map/tile_resolver.gd")
 const EventResolverScript = preload("res://scripts/map/event_resolver.gd")
@@ -14,6 +24,7 @@ signal result_changed
 var profile: Dictionary = {}
 var active_run: Dictionary = {}
 var last_result: Dictionary = {}
+var session_started := false
 
 
 func _ready() -> void:
@@ -28,6 +39,7 @@ func make_default_profile() -> Dictionary:
 		"sigils": 0,
 		"meta_upgrades": {},
 		"unlocks": {},
+		"ad_history": make_default_profile_ad_history(),
 		"best_run": {
 			"captures": 0,
 			"bosses_defeated": 0,
@@ -36,13 +48,23 @@ func make_default_profile() -> Dictionary:
 	}
 
 
+func make_default_profile_ad_history() -> Dictionary:
+	return {
+		"sessions_started": 0,
+		"completed_runs_total": 0,
+		"completed_runs_since_interstitial": 0,
+		"last_interstitial_at_unix": 0,
+		"interstitials_shown_total": 0
+	}
+
+
 func make_default_player() -> Dictionary:
 	return {
-		"current_hp": 108,
-		"max_hp": 108,
-		"attack": 13,
+		"current_hp": 120,
+		"max_hp": 120,
+		"attack": 14,
 		"attack_speed": 1.0,
-		"armor": 6,
+		"armor": 7,
 		"crit_rate": 0.05,
 		"crit_damage": 0.5,
 		"evade": 0.02,
@@ -105,6 +127,16 @@ func make_default_run_stats() -> Dictionary:
 	}
 
 
+func make_default_ad_state() -> Dictionary:
+	return {
+		"rewarded_revive_used": false,
+		"rewarded_bonus_reroll_used": false,
+		"event_offer_rerolls": 0,
+		"relic_offer_rerolls": 0,
+		"run_upgrade_offer_rerolls": 0
+	}
+
+
 func load_profile_state(profile_data: Dictionary, run_data: Dictionary = {}) -> void:
 	profile = _merge_profile(profile_data)
 	active_run = _normalize_run_state(run_data.duplicate(true))
@@ -114,12 +146,28 @@ func load_profile_state(profile_data: Dictionary, run_data: Dictionary = {}) -> 
 	emit_signal("result_changed")
 
 
+func begin_session() -> bool:
+	if session_started:
+		return false
+
+	var ad_history := _normalize_profile_ad_history(profile.get("ad_history", {}))
+	ad_history["sessions_started"] = int(ad_history.get("sessions_started", 0)) + 1
+	profile["ad_history"] = ad_history
+	session_started = true
+	emit_signal("profile_changed")
+	return true
+
+
 func has_active_run() -> bool:
 	return not active_run.is_empty()
 
 
 func has_pending_combat() -> bool:
 	return not active_run.get("pending_combat", {}).is_empty()
+
+
+func has_pending_event() -> bool:
+	return not active_run.get("pending_event", {}).is_empty()
 
 
 func has_pending_relic_choice() -> bool:
@@ -132,6 +180,10 @@ func has_pending_run_upgrade() -> bool:
 
 func get_pending_combat() -> Dictionary:
 	return active_run.get("pending_combat", {}).duplicate(true)
+
+
+func get_pending_event() -> Dictionary:
+	return active_run.get("pending_event", {}).duplicate(true)
 
 
 func get_pending_relic_choice() -> Dictionary:
@@ -188,8 +240,11 @@ func start_new_run(seed: int = 0) -> Dictionary:
 		"pending_essence_bonus": 0,
 		"pending_sigil_bonus": 0,
 		"pending_combat": {},
+		"pending_event": {},
 		"pending_relic_choice": {},
 		"pending_run_upgrade": {},
+		"ad_state": make_default_ad_state(),
+		"last_combat_result": {},
 		"last_action": {},
 		"stats": make_default_run_stats(),
 		"map": MapGeneratorScript.generate_initial_map(seed)
@@ -218,6 +273,8 @@ func resolve_tile(coord_key: String) -> Dictionary:
 		return { "ok": false, "message": "No active run." }
 	if has_pending_combat():
 		return { "ok": false, "message": "Resolve the active combat first." }
+	if has_pending_event():
+		return { "ok": false, "message": "Resolve the active event first." }
 	if has_pending_run_upgrade():
 		return { "ok": false, "message": "Choose a run upgrade first." }
 
@@ -242,19 +299,30 @@ func resolve_tile(coord_key: String) -> Dictionary:
 func choose_event(coord_key: String, choice_id: String) -> Dictionary:
 	if active_run.is_empty():
 		return { "ok": false, "message": "No active run." }
+	if not has_pending_event():
+		return { "ok": false, "message": "No pending event." }
 	if has_pending_combat():
 		return { "ok": false, "message": "Resolve the active combat first." }
 	if has_pending_run_upgrade():
 		return { "ok": false, "message": "Choose a run upgrade first." }
+
+	var pending_event: Dictionary = active_run.get("pending_event", {}).duplicate(true)
+	var pending_coord_key := String(pending_event.get("coord_key", ""))
+	if pending_coord_key.is_empty():
+		return { "ok": false, "message": "Pending event is missing its tile reference." }
+	if coord_key != pending_coord_key:
+		return { "ok": false, "message": "Resolve the currently pending event first." }
 
 	var tiles: Dictionary = active_run.get("map", {}).get("tiles", {})
 	if not tiles.has(coord_key):
 		return { "ok": false, "message": "Unknown tile." }
 
 	var tile: Dictionary = tiles[coord_key]
-	var tile_type := String(tile.get("type", "plains"))
+	var tile_type := String(pending_event.get("tile_type", tile.get("type", "plains")))
 	var tile_def: Dictionary = DataService.get_tile_definitions().get(tile_type, {})
-	var event_def := EventResolverScript.event_for_tile(active_run, coord_key, tile_def, DataService.get_event_definitions())
+	var event_def: Dictionary = pending_event.get("event", {}).duplicate(true)
+	if event_def.is_empty():
+		return { "ok": false, "message": "No pending event data available." }
 	var chosen_choice := _event_choice_by_id(event_def, choice_id)
 	var previous_level := int(active_run.get("level", 1))
 	var previous_run: Dictionary = active_run.duplicate(true)
@@ -263,6 +331,7 @@ func choose_event(coord_key: String, choice_id: String) -> Dictionary:
 		return result
 
 	active_run = result.get("run", {}).duplicate(true)
+	active_run["pending_event"] = {}
 	_record_tile_capture(tile_type)
 	_record_event_resolution(event_def, chosen_choice, previous_run)
 	_queue_run_upgrade_if_needed(previous_level)
@@ -367,6 +436,203 @@ func choose_run_upgrade(upgrade_id: String) -> Dictionary:
 	}
 
 
+func can_use_rewarded_reroll() -> bool:
+	if active_run.is_empty():
+		return false
+	if int(active_run.get("level", 1)) < BONUS_REROLL_MIN_LEVEL:
+		return false
+
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
+	if bool(ad_state.get("rewarded_bonus_reroll_used", false)):
+		return false
+
+	if has_pending_event():
+		return int(active_run.get("pending_event", {}).get("candidate_count", 0)) > 1
+
+	return has_pending_relic_choice() or has_pending_run_upgrade()
+
+
+func use_rewarded_reroll() -> Dictionary:
+	if not can_use_rewarded_reroll():
+		return { "ok": false, "message": "Rewarded reroll is not available." }
+
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
+	var reroll_kind := ""
+
+	if has_pending_relic_choice():
+		var relic_choice: Dictionary = active_run.get("pending_relic_choice", {}).duplicate(true)
+		ad_state["rewarded_bonus_reroll_used"] = true
+		ad_state["relic_offer_rerolls"] = int(ad_state.get("relic_offer_rerolls", 0)) + 1
+		active_run["ad_state"] = ad_state
+		active_run["pending_relic_choice"] = _build_relic_offer(int(relic_choice.get("picks_remaining", 1)))
+		reroll_kind = "relic"
+	elif has_pending_event():
+		var pending_event: Dictionary = active_run.get("pending_event", {}).duplicate(true)
+		var coord_key := String(pending_event.get("coord_key", ""))
+		var tiles: Dictionary = active_run.get("map", {}).get("tiles", {})
+		if coord_key.is_empty() or not tiles.has(coord_key):
+			return { "ok": false, "message": "No rerollable event is active." }
+
+		var tile: Dictionary = tiles[coord_key]
+		var tile_type := String(pending_event.get("tile_type", tile.get("type", "event")))
+		var tile_def: Dictionary = DataService.get_tile_definitions().get(tile_type, {})
+		var next_reroll_count := int(ad_state.get("event_offer_rerolls", 0)) + 1
+		var rebuilt_event := _build_pending_event(coord_key, tile, tile_def, next_reroll_count)
+		if rebuilt_event.is_empty():
+			return { "ok": false, "message": "Event reroll is not available here." }
+
+		ad_state["rewarded_bonus_reroll_used"] = true
+		ad_state["event_offer_rerolls"] = next_reroll_count
+		active_run["ad_state"] = ad_state
+		active_run["pending_event"] = rebuilt_event
+		reroll_kind = "event"
+	elif has_pending_run_upgrade():
+		var pending_upgrade: Dictionary = active_run.get("pending_run_upgrade", {}).duplicate(true)
+		ad_state["rewarded_bonus_reroll_used"] = true
+		ad_state["run_upgrade_offer_rerolls"] = int(ad_state.get("run_upgrade_offer_rerolls", 0)) + 1
+		active_run["ad_state"] = ad_state
+		active_run["pending_run_upgrade"] = _build_run_upgrade_offer(int(pending_upgrade.get("picks_remaining", 1)))
+		reroll_kind = "run_upgrade"
+	else:
+		return { "ok": false, "message": "No reroll target is active." }
+
+	active_run["last_action"] = {
+		"kind": "ad_reward",
+		"slot_id": "rewarded_bonus_reroll",
+		"target": reroll_kind
+	}
+	emit_signal("run_changed")
+	var reroll_label := "run upgrade"
+	if reroll_kind == "relic":
+		reroll_label = "relic"
+	elif reroll_kind == "event":
+		reroll_label = "event"
+	return {
+		"ok": true,
+		"kind": reroll_kind,
+		"message": "Rerolled %s choices." % reroll_label
+	}
+
+
+func can_use_rewarded_revive() -> bool:
+	if active_run.is_empty() or has_pending_combat():
+		return false
+
+	var player: Dictionary = active_run.get("player", {})
+	if int(player.get("current_hp", 0)) > 0:
+		return false
+
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
+	if bool(ad_state.get("rewarded_revive_used", false)):
+		return false
+
+	var last_combat_result: Dictionary = active_run.get("last_combat_result", {})
+	if last_combat_result.is_empty():
+		return false
+	if bool(last_combat_result.get("victory", true)):
+		return false
+	if bool(last_combat_result.get("revive_locked", false)):
+		return false
+	return true
+
+
+func apply_rewarded_revive() -> Dictionary:
+	if not can_use_rewarded_revive():
+		return { "ok": false, "message": "Rewarded revive is not available." }
+
+	var player: Dictionary = active_run.get("player", {}).duplicate(true)
+	var max_hp := maxi(1, int(player.get("max_hp", 1)))
+	player["current_hp"] = maxi(1, int(ceil(float(max_hp) * REWARDED_REVIVE_HEAL_RATIO)))
+	active_run["player"] = player
+	active_run["danger"] = maxi(0, int(active_run.get("danger", 0)) - REWARDED_REVIVE_DANGER_REDUCTION)
+
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
+	ad_state["rewarded_revive_used"] = true
+	active_run["ad_state"] = ad_state
+	active_run["last_action"] = {
+		"kind": "ad_reward",
+		"slot_id": "rewarded_revive"
+	}
+
+	var last_combat_result: Dictionary = active_run.get("last_combat_result", {}).duplicate(true)
+	last_combat_result["revive_used"] = true
+	active_run["last_combat_result"] = last_combat_result
+
+	emit_signal("run_changed")
+	return {
+		"ok": true,
+		"message": "Revived the commander at %s%% HP and reduced danger by %s." % [
+			int(round(REWARDED_REVIVE_HEAL_RATIO * 100.0)),
+			REWARDED_REVIVE_DANGER_REDUCTION
+		]
+	}
+
+
+func can_claim_double_run_reward() -> bool:
+	if last_result.is_empty():
+		return false
+	if bool(last_result.get("double_essence_claimed", false)):
+		return false
+	return int(last_result.get("essence_gain", 0)) > 0
+
+
+func claim_double_run_reward() -> Dictionary:
+	if not can_claim_double_run_reward():
+		return { "ok": false, "message": "Double reward is not available." }
+
+	var bonus_essence := int(last_result.get("essence_gain", 0))
+	profile["essence"] = int(profile.get("essence", 0)) + bonus_essence
+	last_result["double_essence_claimed"] = true
+	last_result["double_essence_bonus"] = bonus_essence
+
+	emit_signal("profile_changed")
+	emit_signal("result_changed")
+	return {
+		"ok": true,
+		"message": "Granted %s bonus essence." % bonus_essence
+	}
+
+
+func can_show_run_end_interstitial(exit_target: String = "home") -> bool:
+	return bool(_evaluate_run_end_interstitial(exit_target).get("eligible", false))
+
+
+func begin_run_end_interstitial(exit_target: String = "home") -> Dictionary:
+	var gate := _evaluate_run_end_interstitial(exit_target)
+	gate["accepted"] = false
+	if not gate.get("eligible", false):
+		if String(gate.get("reason", "")) != "victory_home_only":
+			_set_run_end_interstitial_pending(false)
+		return gate
+
+	gate["accepted"] = true
+	return gate
+
+
+func complete_run_end_interstitial() -> Dictionary:
+	if last_result.is_empty():
+		return { "ok": false, "message": "No run result is active." }
+	if not bool(last_result.get("run_end_interstitial_pending", true)):
+		return { "ok": false, "message": "Run-end interstitial is already settled." }
+
+	var ad_history := _normalize_profile_ad_history(profile.get("ad_history", {}))
+	ad_history["last_interstitial_at_unix"] = int(Time.get_unix_time_from_system())
+	ad_history["completed_runs_since_interstitial"] = 0
+	ad_history["interstitials_shown_total"] = int(ad_history.get("interstitials_shown_total", 0)) + 1
+	profile["ad_history"] = ad_history
+
+	_set_run_end_interstitial_pending(false)
+	emit_signal("profile_changed")
+	return {
+		"ok": true,
+		"message": "Run-end interstitial completed."
+	}
+
+
+func abandon_run_end_interstitial() -> void:
+	_set_run_end_interstitial_pending(false)
+
+
 func complete_pending_combat() -> Dictionary:
 	if active_run.is_empty():
 		return { "ok": false, "message": "No active run." }
@@ -379,7 +645,7 @@ func complete_pending_combat() -> Dictionary:
 	var enemy_stats: Dictionary = pending.get("enemy", {})
 	var battle_result: Dictionary = pending.get("battle_result", {})
 	var previous_level := int(active_run.get("level", 1))
-	var player_state: Dictionary = active_run.get("player", {}).duplicate(true)
+	var player_state: Dictionary = pending.get("player_snapshot", active_run.get("player", {})).duplicate(true)
 	player_state["current_hp"] = int(battle_result.get("player_hp", player_state.get("current_hp", 0)))
 	active_run["player"] = player_state
 	active_run["pending_combat"] = {}
@@ -395,19 +661,28 @@ func complete_pending_combat() -> Dictionary:
 			"enemy_id": String(enemy_stats.get("id", "enemy")),
 			"is_boss": bool(pending.get("is_boss", false))
 		}
+		active_run["last_combat_result"] = {
+			"victory": true,
+			"is_boss": bool(pending.get("is_boss", false)),
+			"boss_id": String(pending.get("boss_id", "")),
+			"revive_locked": false
+		}
 
 		if pending.get("is_boss", false):
+			var boss_count_before := int(active_run.get("bosses_defeated", 0))
 			var meta_boss_essence := int(round(_meta_effect_total("boss_reward_essence_flat")))
 			var meta_boss_sigils := int(round(_meta_effect_total("boss_reward_sigil_flat")))
-			active_run["bosses_defeated"] = int(active_run.get("bosses_defeated", 0)) + 1
+			active_run["bosses_defeated"] = boss_count_before + 1
 			active_run["pending_essence_bonus"] = int(active_run.get("pending_essence_bonus", 0)) + int(pending.get("boss_reward_essence", 0)) + meta_boss_essence
 			active_run["pending_sigil_bonus"] = int(active_run.get("pending_sigil_bonus", 0)) + int(pending.get("boss_reward_sigils", 0)) + meta_boss_sigils
-			var boss_heal_percent := float(_meta_effect_total("heal_after_boss_percent"))
+			var boss_heal_percent := BOSS_VICTORY_HEAL_RATIO + float(_meta_effect_total("heal_after_boss_percent"))
 			if boss_heal_percent > 0.0:
 				var healed_player: Dictionary = active_run.get("player", {}).duplicate(true)
 				var boss_heal_amount := int(round(float(healed_player.get("max_hp", 0)) * boss_heal_percent))
 				healed_player["current_hp"] = mini(int(healed_player.get("max_hp", 0)), int(healed_player.get("current_hp", 0)) + boss_heal_amount)
 				active_run["player"] = healed_player
+			if boss_count_before == 0:
+				active_run["danger"] = maxi(0, int(active_run.get("danger", 0)) - FIRST_BOSS_VICTORY_DANGER_REDUCTION)
 			if int(pending.get("boss_reward_relics", 0)) > 0:
 				active_run["pending_relic_choice"] = _build_relic_offer(int(pending.get("boss_reward_relics", 0)))
 		_queue_run_upgrade_if_needed(previous_level)
@@ -426,11 +701,18 @@ func complete_pending_combat() -> Dictionary:
 
 	active_run["player"]["current_hp"] = 0
 	_record_combat_resolution(pending, battle_result, false)
+	var revive_locked := _should_lock_rewarded_revive(pending, battle_result)
 	active_run["last_action"] = {
 		"kind": "combat",
 		"victory": false,
 		"enemy_id": String(enemy_stats.get("id", "enemy")),
 		"is_boss": bool(pending.get("is_boss", false))
+	}
+	active_run["last_combat_result"] = {
+		"victory": false,
+		"is_boss": bool(pending.get("is_boss", false)),
+		"boss_id": String(pending.get("boss_id", "")),
+		"revive_locked": revive_locked
 	}
 	emit_signal("run_changed")
 	return {
@@ -464,6 +746,10 @@ func finish_run(victory: bool) -> Dictionary:
 
 	profile["essence"] = int(profile.get("essence", 0)) + essence_gain
 	profile["sigils"] = int(profile.get("sigils", 0)) + sigil_gain
+	var ad_history := _normalize_profile_ad_history(profile.get("ad_history", {}))
+	ad_history["completed_runs_total"] = int(ad_history.get("completed_runs_total", 0)) + 1
+	ad_history["completed_runs_since_interstitial"] = int(ad_history.get("completed_runs_since_interstitial", 0)) + 1
+	profile["ad_history"] = ad_history
 
 	var best_run: Dictionary = profile.get("best_run", {})
 	if captures > int(best_run.get("captures", 0)):
@@ -489,6 +775,9 @@ func finish_run(victory: bool) -> Dictionary:
 		"final_level": int(run_snapshot.get("level", 1)),
 		"final_danger": int(run_snapshot.get("danger", 0)),
 		"final_player": run_snapshot.get("player", {}).duplicate(true),
+		"double_essence_claimed": false,
+		"double_essence_bonus": 0,
+		"run_end_interstitial_pending": true,
 		"relic_ids": run_snapshot.get("relics", []).duplicate(true),
 		"run_upgrades": run_snapshot.get("run_upgrades", {}).duplicate(true),
 		"curses": run_snapshot.get("curses", []).duplicate(true),
@@ -538,6 +827,7 @@ func _merge_profile(profile_data: Dictionary) -> Dictionary:
 		merged["meta_upgrades"] = {}
 	if not (merged.get("unlocks", {}) is Dictionary):
 		merged["unlocks"] = {}
+	merged["ad_history"] = _normalize_profile_ad_history(merged.get("ad_history", {}))
 	if not (merged.get("best_run", {}) is Dictionary):
 		merged["best_run"] = make_default_profile()["best_run"]
 	merged["version"] = SAVE_VERSION
@@ -556,14 +846,39 @@ func _normalize_run_state(run_data: Dictionary) -> Dictionary:
 		run_data["pending_sigil_bonus"] = 0
 	if not (run_data.get("pending_combat", {}) is Dictionary):
 		run_data["pending_combat"] = {}
+	if not (run_data.get("pending_event", {}) is Dictionary):
+		run_data["pending_event"] = {}
 	if not (run_data.get("pending_relic_choice", {}) is Dictionary):
 		run_data["pending_relic_choice"] = {}
 	if not (run_data.get("pending_run_upgrade", {}) is Dictionary):
 		run_data["pending_run_upgrade"] = {}
 	if not (run_data.get("run_upgrades", {}) is Dictionary):
 		run_data["run_upgrades"] = {}
+	if not (run_data.get("last_combat_result", {}) is Dictionary):
+		run_data["last_combat_result"] = {}
+	run_data["ad_state"] = _normalize_ad_state(run_data.get("ad_state", {}))
 	run_data["stats"] = _normalize_run_stats(run_data.get("stats", {}))
 	return run_data
+
+
+func _normalize_ad_state(ad_state_data: Variant) -> Dictionary:
+	var normalized := make_default_ad_state()
+	if not (ad_state_data is Dictionary):
+		return normalized
+
+	for key in ad_state_data.keys():
+		normalized[key] = ad_state_data[key]
+	return normalized
+
+
+func _normalize_profile_ad_history(ad_history_data: Variant) -> Dictionary:
+	var normalized := make_default_profile_ad_history()
+	if not (ad_history_data is Dictionary):
+		return normalized
+
+	for key in ad_history_data.keys():
+		normalized[key] = ad_history_data[key]
+	return normalized
 
 
 func _normalize_run_stats(stats_data: Variant) -> Dictionary:
@@ -858,17 +1173,20 @@ func _meta_effect_total(effect_key: String) -> float:
 
 
 func _prepare_event_tile(coord_key: String, tile: Dictionary, tile_def: Dictionary) -> Dictionary:
-	var event_def := EventResolverScript.event_for_tile(active_run, coord_key, tile_def, DataService.get_event_definitions())
-	if event_def.is_empty():
+	var pending_event := _build_pending_event(coord_key, tile, tile_def)
+	if pending_event.is_empty():
 		return { "ok": false, "message": "No event data available." }
+
+	active_run["pending_event"] = pending_event
+	emit_signal("run_changed")
 
 	return {
 		"ok": true,
 		"kind": "event",
 		"coord_key": coord_key,
 		"tile_type": String(tile.get("type", "shrine")),
-		"event": event_def,
-		"message": "Choose how to resolve %s." % String(event_def.get("title", "the event"))
+		"event": pending_event.get("event", {}).duplicate(true),
+		"message": "Choose how to resolve %s." % String(pending_event.get("event", {}).get("title", "the event"))
 	}
 
 
@@ -891,19 +1209,27 @@ func _prepare_combat_tile(coord_key: String, tile: Dictionary, tile_def: Diction
 	var enemy_stats: Dictionary = {}
 	var is_boss := false
 	var boss_def: Dictionary = {}
+	var player_snapshot: Dictionary = active_run.get("player", {}).duplicate(true)
+	var pre_boss_rally_heal := 0
 
 	if _should_spawn_boss():
 		boss_def = _boss_definition_for_run()
 		enemy_stats = _build_boss_for_run(boss_def, tile)
 		is_boss = not boss_def.is_empty()
+		if is_boss:
+			var boss_prep := _prepare_player_for_boss_encounter(player_snapshot, int(active_run.get("bosses_defeated", 0)))
+			player_snapshot = boss_prep.get("player", player_snapshot).duplicate(true)
+			pre_boss_rally_heal = int(boss_prep.get("heal", 0))
 	else:
 		enemy_stats = _build_enemy_for_tile(coord_key, tile, tile_def)
 
-	var battle_result: Dictionary = CombatResolverScript.simulate_battle_log(active_run.get("player", {}), enemy_stats)
+	var battle_result: Dictionary = CombatResolverScript.simulate_battle_log(player_snapshot, enemy_stats)
 	active_run["pending_combat"] = {
 		"coord_key": coord_key,
 		"tile_type": String(tile.get("type", tile_def.get("id", "tile"))),
 		"is_boss": is_boss,
+		"player_snapshot": player_snapshot,
+		"pre_boss_rally_heal": pre_boss_rally_heal,
 		"enemy": enemy_stats,
 		"boss_id": String(boss_def.get("id", "")),
 		"boss_reward_essence": int(boss_def.get("reward_essence", 0)),
@@ -920,6 +1246,25 @@ func _prepare_combat_tile(coord_key: String, tile: Dictionary, tile_def: Diction
 		"requires_scene": true,
 		"encounter": active_run.get("pending_combat", {}).duplicate(true),
 		"message": "Engage %s." % String(enemy_stats.get("display_name", enemy_stats.get("id", "enemy")))
+	}
+
+
+func _prepare_player_for_boss_encounter(player_state: Dictionary, boss_index: int) -> Dictionary:
+	var snapshot: Dictionary = player_state.duplicate(true)
+	if boss_index != 0:
+		return {
+			"player": snapshot,
+			"heal": 0
+		}
+
+	var max_hp := int(snapshot.get("max_hp", 0))
+	var current_hp := int(snapshot.get("current_hp", 0))
+	var heal_amount := maxi(0, int(round(float(max_hp) * FIRST_BOSS_RALLY_HEAL_RATIO)))
+	var healed_hp := mini(max_hp, current_hp + heal_amount)
+	snapshot["current_hp"] = healed_hp
+	return {
+		"player": snapshot,
+		"heal": maxi(0, healed_hp - current_hp)
 	}
 
 
@@ -1017,6 +1362,7 @@ func _build_boss_for_run(boss_def: Dictionary, tile: Dictionary) -> Dictionary:
 func _build_run_upgrade_offer(picks_remaining: int) -> Dictionary:
 	var upgrade_pool: Array = DataService.get_data_set("upgrades_run")
 	var run_upgrades: Dictionary = active_run.get("run_upgrades", {})
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
 	var candidates: Array = []
 
 	for upgrade_data in upgrade_pool:
@@ -1041,6 +1387,7 @@ func _build_run_upgrade_offer(picks_remaining: int) -> Dictionary:
 		int(active_run.get("level", 1)),
 		picks_remaining
 	]
+	offer_salt += ":%s" % int(ad_state.get("run_upgrade_offer_rerolls", 0))
 
 	while choice_ids.size() < choice_count and not candidates.is_empty():
 		var index: int = abs(_coord_hash("%s:%s" % [offer_salt, choice_ids.size()])) % candidates.size()
@@ -1105,6 +1452,7 @@ func _apply_run_upgrade_effect(effect: Dictionary) -> void:
 func _build_relic_offer(picks_remaining: int) -> Dictionary:
 	var relic_pool: Array = DataService.get_data_set("relics")
 	var owned_relics: Array = active_run.get("relics", [])
+	var ad_state := _normalize_ad_state(active_run.get("ad_state", {}))
 	var candidates: Array = []
 
 	for relic_data in relic_pool:
@@ -1129,6 +1477,7 @@ func _build_relic_offer(picks_remaining: int) -> Dictionary:
 		int(active_run.get("captured_tiles", 0)),
 		picks_remaining
 	]
+	offer_salt += ":%s" % int(ad_state.get("relic_offer_rerolls", 0))
 
 	while choice_ids.size() < choice_count and not candidates.is_empty():
 		var index: int = abs(_coord_hash("%s:%s" % [offer_salt, choice_ids.size()])) % candidates.size()
@@ -1193,3 +1542,146 @@ func _coord_hash(text: String) -> int:
 	for value in text.to_ascii_buffer():
 		total = (total * 33) + int(value)
 	return total
+
+
+func _build_pending_event(coord_key: String, tile: Dictionary, tile_def: Dictionary, reroll_count: int = -1) -> Dictionary:
+	var event_defs: Dictionary = DataService.get_event_definitions()
+	var candidate_ids: Array = EventResolverScript.event_candidates_for_tile(active_run, tile_def, event_defs)
+	if candidate_ids.is_empty():
+		return {}
+
+	var effective_reroll_count := reroll_count
+	if effective_reroll_count < 0:
+		effective_reroll_count = int(_normalize_ad_state(active_run.get("ad_state", {})).get("event_offer_rerolls", 0))
+
+	var event_def := EventResolverScript.event_for_tile(active_run, coord_key, tile_def, event_defs, effective_reroll_count)
+	if event_def.is_empty():
+		return {}
+
+	return {
+		"coord_key": coord_key,
+		"tile_type": String(tile.get("type", tile_def.get("id", "event"))),
+		"event": event_def,
+		"candidate_count": candidate_ids.size(),
+		"reroll_count": effective_reroll_count
+	}
+
+
+func _evaluate_run_end_interstitial(exit_target: String) -> Dictionary:
+	var normalized_target := String(exit_target).strip_edges().to_lower()
+	if normalized_target.is_empty():
+		normalized_target = "home"
+	if not ["home", "meta", "next_run"].has(normalized_target):
+		normalized_target = "home"
+
+	if last_result.is_empty():
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "no_result",
+			"message": "No run result is active."
+		}
+	if not bool(last_result.get("run_end_interstitial_pending", true)):
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "already_settled",
+			"message": "Run-end interstitial has already been settled for this result."
+		}
+	if not active_run.is_empty():
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "active_run",
+			"message": "Interstitials only show after the run has ended."
+		}
+	if bool(last_result.get("victory", false)) and normalized_target != "home":
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "victory_home_only",
+			"message": "Victory results only offer an interstitial on return home."
+		}
+	if not AdService.is_interstitial_ready():
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "not_ready",
+			"message": "Interstitial is not ready."
+		}
+
+	var ad_history := _normalize_profile_ad_history(profile.get("ad_history", {}))
+	if int(ad_history.get("sessions_started", 0)) < INTERSTITIAL_REQUIRED_SESSION_COUNT:
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "session_gate",
+			"message": "Interstitials unlock from the second session onward."
+		}
+	if AdService.has_recent_rewarded_watch():
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "recent_rewarded",
+			"message": "Recent rewarded watch suppresses the interstitial."
+		}
+
+	var now := int(Time.get_unix_time_from_system())
+	var last_interstitial_at := int(ad_history.get("last_interstitial_at_unix", 0))
+	if last_interstitial_at > 0 and now - last_interstitial_at < INTERSTITIAL_MIN_INTERVAL_SECONDS:
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "cooldown",
+			"message": "Interstitial cooldown is still active."
+		}
+	if int(ad_history.get("completed_runs_since_interstitial", 0)) < INTERSTITIAL_REQUIRED_RUNS:
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "run_pacing",
+			"message": "Another completed run is required before the next interstitial."
+		}
+
+	var completed_runs_total := int(ad_history.get("completed_runs_total", 0))
+	var duration_seconds := int(last_result.get("duration_seconds", 0))
+	if completed_runs_total < INTERSTITIAL_REQUIRED_RUNS and duration_seconds < INTERSTITIAL_MIN_LONG_RUN_SECONDS:
+		return {
+			"eligible": false,
+			"target": normalized_target,
+			"reason": "minimum_progress",
+			"message": "Interstitials need either two completed runs or a run longer than three minutes."
+		}
+
+	return {
+		"eligible": true,
+		"target": normalized_target,
+		"reason": "eligible",
+		"message": "Run-end interstitial is eligible."
+	}
+
+
+func _set_run_end_interstitial_pending(is_pending: bool) -> void:
+	if last_result.is_empty():
+		return
+	last_result["run_end_interstitial_pending"] = is_pending
+	emit_signal("result_changed")
+
+
+func _should_lock_rewarded_revive(pending_combat: Dictionary, battle_result: Dictionary) -> bool:
+	if not bool(pending_combat.get("is_boss", false)):
+		return false
+
+	var boss_defs: Array = DataService.get_data_set("bosses")
+	if boss_defs.is_empty():
+		return false
+
+	var final_boss_id := String(boss_defs[boss_defs.size() - 1].get("id", ""))
+	if String(pending_combat.get("boss_id", "")) != final_boss_id:
+		return false
+
+	var phase_changes := 0
+	for event_value in battle_result.get("events", []):
+		if event_value is Dictionary and String(event_value.get("kind", "")) == "phase_change":
+			phase_changes += 1
+	return phase_changes >= 2

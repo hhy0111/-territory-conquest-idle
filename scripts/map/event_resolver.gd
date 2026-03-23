@@ -4,7 +4,7 @@ class_name EventResolver
 const TileResolverScript = preload("res://scripts/map/tile_resolver.gd")
 
 
-static func event_for_tile(run: Dictionary, coord_key: String, tile_def: Dictionary, event_defs: Dictionary) -> Dictionary:
+static func event_candidates_for_tile(run: Dictionary, tile_def: Dictionary, event_defs: Dictionary) -> Array:
 	var event_pool: Array = tile_def.get("event_pool", [])
 	if event_pool.is_empty():
 		var fallback_ids: Array = event_defs.keys()
@@ -12,7 +12,7 @@ static func event_for_tile(run: Dictionary, coord_key: String, tile_def: Diction
 		event_pool = fallback_ids
 
 	if event_pool.is_empty():
-		return {}
+		return []
 
 	var phase_tag := _phase_tag_for_run(run)
 	var filtered_pool: Array = []
@@ -24,9 +24,20 @@ static func event_for_tile(run: Dictionary, coord_key: String, tile_def: Diction
 			filtered_pool.append(event_id)
 
 	if filtered_pool.is_empty():
-		filtered_pool = event_pool.duplicate()
+		return event_pool.duplicate()
+
+	return filtered_pool
+
+
+static func event_for_tile(run: Dictionary, coord_key: String, tile_def: Dictionary, event_defs: Dictionary, reroll_count: int = 0) -> Dictionary:
+	var filtered_pool: Array = event_candidates_for_tile(run, tile_def, event_defs)
+	if filtered_pool.is_empty():
+		return {}
+	var phase_tag := _phase_tag_for_run(run)
 
 	var index: int = abs(_coord_hash("%s:%s:%s" % [int(run.get("seed", 0)), coord_key, phase_tag])) % filtered_pool.size()
+	if filtered_pool.size() > 1:
+		index = (index + maxi(0, reroll_count)) % filtered_pool.size()
 	var event_id := String(filtered_pool[index])
 	if event_defs.has(event_id):
 		return event_defs[event_id].duplicate(true)

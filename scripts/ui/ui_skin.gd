@@ -47,13 +47,16 @@ const TILE_OVERLAYS := {
 const EVENT_BACKGROUNDS := {
 	"blood_shrine": "res://assets/backgrounds/event_bg_blood_shrine.png",
 	"cursed_banner": "res://assets/backgrounds/event_bg_cursed_banner.png",
+	"field_hospital": "res://assets/backgrounds/event_bg_mercenary_camp.png",
 	"ruined_caravan": "res://assets/backgrounds/event_bg_ruined_caravan.png",
 	"sealed_cache": "res://assets/backgrounds/event_bg_sealed_vault.png",
 	"frontier_scribes": "res://assets/backgrounds/event_bg_scout_tower.png",
 	"oath_stone": "res://assets/backgrounds/event_bg_mercenary_camp.png",
 	"rift_tithe": "res://assets/backgrounds/event_bg_sealed_vault.png",
+	"signal_beacon": "res://assets/backgrounds/event_bg_scout_tower.png",
 	"survivor_encampment": "res://assets/backgrounds/event_bg_mercenary_camp.png",
-	"smuggler_contract": "res://assets/backgrounds/event_bg_ruined_caravan.png"
+	"smuggler_contract": "res://assets/backgrounds/event_bg_ruined_caravan.png",
+	"war_drum_totem": "res://assets/backgrounds/event_bg_blood_shrine.png"
 }
 
 const ENEMY_TEXTURES := {

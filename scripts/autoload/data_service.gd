@@ -7,7 +7,8 @@ const DATA_FILES := {
 	"bosses": "res://data/bosses.json",
 	"relics": "res://data/relics.json",
 	"upgrades_run": "res://data/upgrades_run.json",
-	"upgrades_meta": "res://data/upgrades_meta.json"
+	"upgrades_meta": "res://data/upgrades_meta.json",
+	"ad_runtime": "res://data/ad_runtime.json"
 }
 
 var data_sets: Dictionary = {}
@@ -65,6 +66,10 @@ func get_meta_upgrade_definitions() -> Dictionary:
 
 func get_run_upgrade_definitions() -> Dictionary:
 	return get_indexed_data_set("upgrades_run")
+
+
+func get_ad_runtime_config() -> Dictionary:
+	return get_data_set("ad_runtime")
 
 
 func _load_json_file(path: String) -> Variant:

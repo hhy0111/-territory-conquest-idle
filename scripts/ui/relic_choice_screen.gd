@@ -5,6 +5,8 @@ const UISkin = preload("res://scripts/ui/ui_skin.gd")
 var summary_label: Label
 var message_label: Label
 var choice_list: VBoxContainer
+var reroll_button: Button
+var pending_rewarded_reroll := false
 
 
 func _ready() -> void:
@@ -15,6 +17,7 @@ func _ready() -> void:
 		get_tree().current_scene.show_run()
 		return
 
+	_connect_ad_signals()
 	UISkin.install_screen_background(self, UISkin.screen_background("relic"), Color(0.03, 0.04, 0.06, 0.72))
 	_build_ui()
 	_refresh_view("Choose a relic reward.")
@@ -67,6 +70,12 @@ func _build_ui() -> void:
 	choice_list.add_theme_constant_override("separation", 14)
 	scroll.add_child(choice_list)
 
+	reroll_button = Button.new()
+	reroll_button.custom_minimum_size = Vector2(0, 70)
+	UISkin.apply_button_style(reroll_button, "secondary")
+	reroll_button.pressed.connect(_on_reroll_pressed)
+	column.add_child(reroll_button)
+
 
 func _refresh_view(message: String) -> void:
 	var choice_state: Dictionary = GameState.get_pending_relic_choice()
@@ -82,6 +91,7 @@ func _refresh_view(message: String) -> void:
 		GameState.active_run.get("bosses_defeated", 0)
 	]
 	message_label.text = message
+	_refresh_reroll_button()
 
 	for child in choice_list.get_children():
 		child.queue_free()
@@ -154,6 +164,20 @@ func _on_relic_pressed(relic_id: String) -> void:
 	get_tree().current_scene.show_run()
 
 
+func _on_reroll_pressed() -> void:
+	if pending_rewarded_reroll:
+		return
+	if not AdService.is_rewarded_ready():
+		_refresh_view("Rewarded reroll is not ready.")
+		return
+	pending_rewarded_reroll = true
+	_refresh_view("Opening rewarded reroll...")
+	if not AdService.show_rewarded("rewarded_bonus_reroll"):
+		pending_rewarded_reroll = false
+		_refresh_view("Rewarded reroll could not be shown.")
+		return
+
+
 func _describe_relic_effect(effect: Dictionary) -> String:
 	var segments: Array = []
 
@@ -195,3 +219,55 @@ func _format_special_name(value: Variant) -> String:
 			names.append(String(item).replace("_", " ").capitalize())
 		return ", ".join(names)
 	return String(value).replace("_", " ").capitalize()
+
+
+func _refresh_reroll_button() -> void:
+	if reroll_button == null:
+		return
+
+	var level := int(GameState.active_run.get("level", 1))
+	var ad_state: Dictionary = GameState.active_run.get("ad_state", {})
+	var reroll_used := bool(ad_state.get("rewarded_bonus_reroll_used", false))
+	var reroll_available := GameState.can_use_rewarded_reroll() and AdService.is_rewarded_ready()
+
+	if pending_rewarded_reroll:
+		reroll_button.text = "Rewarded Reroll In Progress"
+	elif reroll_used:
+		reroll_button.text = "Rewarded Reroll Used"
+	elif level < 3:
+		reroll_button.text = "Rewarded Reroll Unlocks at Level 3"
+	elif not AdService.is_rewarded_ready():
+		reroll_button.text = "Rewarded Reroll Unavailable"
+	else:
+		reroll_button.text = "Watch Ad: Reroll Relics"
+
+	reroll_button.disabled = pending_rewarded_reroll or not reroll_available
+
+
+func _connect_ad_signals() -> void:
+	if not AdService.rewarded_completed.is_connected(_on_rewarded_completed):
+		AdService.rewarded_completed.connect(_on_rewarded_completed)
+	if not AdService.rewarded_failed.is_connected(_on_rewarded_failed):
+		AdService.rewarded_failed.connect(_on_rewarded_failed)
+
+
+func _on_rewarded_completed(slot_key: String) -> void:
+	if not pending_rewarded_reroll or slot_key != "rewarded_bonus_reroll":
+		return
+
+	pending_rewarded_reroll = false
+	var result := GameState.use_rewarded_reroll()
+	if not result.get("ok", false):
+		_refresh_view(String(result.get("message", "Rewarded reroll failed.")))
+		return
+
+	SaveService.persist()
+	_refresh_view(String(result.get("message", "Rerolled relic choices.")))
+
+
+func _on_rewarded_failed(slot_key: String, _reason: String) -> void:
+	if not pending_rewarded_reroll or slot_key != "rewarded_bonus_reroll":
+		return
+
+	pending_rewarded_reroll = false
+	_refresh_view("Rewarded reroll could not be completed.")

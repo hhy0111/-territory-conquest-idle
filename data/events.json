@@ -16,8 +16,8 @@
         "id": "walk_away",
         "label": "Walk Away",
         "cost": {},
-        "reward": { "essence_on_run_end": 6 },
-        "danger_delta": 0
+        "reward": { "heal_percent": 0.12, "essence_on_run_end": 4 },
+        "danger_delta": -2
       }
     ]
   },
@@ -82,8 +82,8 @@
         "id": "salvage_toolkits",
         "label": "Salvage Toolkits",
         "cost": {},
-        "reward": { "armor_flat": 2, "gold": 12 },
-        "danger_delta": 1
+        "reward": { "armor_flat": 2, "gold": 12, "heal_flat": 8 },
+        "danger_delta": 0
       }
     ]
   },
@@ -169,9 +169,9 @@
       {
         "id": "aid_the_wounded",
         "label": "Aid the Wounded",
-        "cost": { "gold_flat": 10 },
-        "reward": { "heal_percent": 0.35, "max_hp_flat": 8 },
-        "danger_delta": 0
+        "cost": { "gold_flat": 8 },
+        "reward": { "heal_percent": 0.4, "max_hp_flat": 10 },
+        "danger_delta": -1
       }
     ]
   },
@@ -193,6 +193,72 @@
         "label": "Confiscate the Goods",
         "cost": {},
         "reward": { "armor_flat": 2, "attack_flat": 2, "essence_on_run_end": 6 },
+        "danger_delta": 1
+      }
+    ]
+  },
+  {
+    "id": "field_hospital",
+    "title": "Field Hospital",
+    "description": "Collapsed tents and medicine lockers offer relief or profit.",
+    "phase_tags": ["early", "mid"],
+    "choices": [
+      {
+        "id": "restore_the_line",
+        "label": "Restore the Line",
+        "cost": { "gold_flat": 6 },
+        "reward": { "heal_percent": 0.36, "max_hp_flat": 8 },
+        "danger_delta": -1
+      },
+      {
+        "id": "strip_the_supplies",
+        "label": "Strip the Supplies",
+        "cost": {},
+        "reward": { "gold": 20, "essence_on_run_end": 6 },
+        "danger_delta": 3
+      }
+    ]
+  },
+  {
+    "id": "war_drum_totem",
+    "title": "War Drum Totem",
+    "description": "A blood-marked drum promises a faster march to whoever answers it.",
+    "phase_tags": ["early", "mid"],
+    "choices": [
+      {
+        "id": "answer_the_beat",
+        "label": "Answer the Beat",
+        "cost": { "current_hp_percent": 0.12 },
+        "reward": { "attack_speed": 0.16, "crit_rate": 0.02 },
+        "danger_delta": 5
+      },
+      {
+        "id": "bind_it_to_the_line",
+        "label": "Bind It to the Line",
+        "cost": {},
+        "reward": { "armor_flat": 2, "heal_flat": 10, "essence_on_run_end": 6 },
+        "danger_delta": -1
+      }
+    ]
+  },
+  {
+    "id": "signal_beacon",
+    "title": "Signal Beacon",
+    "description": "A command beacon still answers those willing to seize the frontier's voice.",
+    "phase_tags": ["late"],
+    "choices": [
+      {
+        "id": "ignite_the_beacon",
+        "label": "Ignite the Beacon",
+        "cost": { "gold_flat": 18 },
+        "reward": { "grant_skill": "command_volley", "luck": 1 },
+        "danger_delta": 3
+      },
+      {
+        "id": "dismantle_the_core",
+        "label": "Dismantle the Core",
+        "cost": { "current_hp_percent": 0.12 },
+        "reward": { "territory_power": 0.06, "essence_on_run_end": 14 },
         "danger_delta": 1
       }
     ]

@@ -118,5 +118,65 @@
     "cost_sigils": 2,
     "max_rank": 2,
     "effect": { "victory_sigils_flat": 1 }
+  },
+  {
+    "id": "command_recovery_2",
+    "tree": "command",
+    "name": "Siege Medics",
+    "description": "Further improve healing after every boss victory.",
+    "cost_essence": 52,
+    "cost_sigils": 1,
+    "max_rank": 3,
+    "effect": { "heal_after_boss_percent": 0.08 }
+  },
+  {
+    "id": "logistics_gold_2",
+    "tree": "logistics",
+    "name": "Hidden Stockpiles",
+    "description": "Start each run with even more gold.",
+    "cost_essence": 34,
+    "cost_sigils": 0,
+    "max_rank": 4,
+    "effect": { "starting_gold_flat": 7 }
+  },
+  {
+    "id": "logistics_luck_2",
+    "tree": "logistics",
+    "name": "Forward Informants",
+    "description": "Further increase starting luck for every run.",
+    "cost_essence": 38,
+    "cost_sigils": 1,
+    "max_rank": 3,
+    "effect": { "starting_luck_flat": 1 }
+  },
+  {
+    "id": "logistics_salvage_2",
+    "tree": "logistics",
+    "name": "Recovery Quotas",
+    "description": "Further increase total essence gained at the end of a run.",
+    "cost_essence": 52,
+    "cost_sigils": 1,
+    "max_rank": 3,
+    "effect": { "essence_gain_percent": 0.06 }
+  },
+  {
+    "id": "legacy_bounty_2",
+    "tree": "legacy",
+    "name": "Imperial Levy",
+    "description": "Further increase boss kill rewards.",
+    "cost_essence": 72,
+    "cost_sigils": 2,
+    "max_rank": 2,
+    "effect": { "boss_reward_essence_flat": 8, "boss_reward_sigil_flat": 1 }
+  },
+  {
+    "id": "legacy_victory_seal_2",
+    "tree": "legacy",
+    "name": "Coronation Mark",
+    "description": "Further increase sigils earned on victorious runs.",
+    "cost_essence": 68,
+    "cost_sigils": 2,
+    "max_rank": 2,
+    "effect": { "victory_sigils_flat": 1 }
   }
 ]

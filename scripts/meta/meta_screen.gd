@@ -4,9 +4,11 @@ const UISkin = preload("res://scripts/ui/ui_skin.gd")
 
 var status_label: Label
 var list_box: VBoxContainer
+var pending_home_exit := false
 
 
 func _ready() -> void:
+	_connect_ad_signals()
 	UISkin.install_screen_background(self, UISkin.screen_background("meta"))
 	_build_ui()
 	_refresh_view("Spend permanent resources on long-term doctrine upgrades.")
@@ -65,7 +67,7 @@ func _build_ui() -> void:
 
 func _refresh_view(message: String) -> void:
 	var profile := GameState.profile
-	status_label.text = "%s\n%s" % [_profile_summary(profile), message]
+	_set_status_message(message)
 
 	for child in list_box.get_children():
 		child.queue_free()
@@ -180,13 +182,59 @@ func _on_buy_pressed(upgrade_id: String) -> void:
 
 
 func _on_back_pressed() -> void:
-	get_tree().current_scene.show_home()
+	if pending_home_exit:
+		return
+
+	var gate := GameState.begin_run_end_interstitial("home")
+	if not gate.get("accepted", false):
+		SaveService.persist()
+		get_tree().current_scene.show_home()
+		return
+
+	pending_home_exit = true
+	_set_status_message("Showing interstitial...")
+	if not AdService.show_interstitial():
+		pending_home_exit = false
+		GameState.abandon_run_end_interstitial()
+		SaveService.persist()
+		get_tree().current_scene.show_home()
 
 
 func _on_run_pressed() -> void:
 	GameState.start_new_run()
 	SaveService.persist()
 	get_tree().current_scene.show_run()
+
+
+func _set_status_message(message: String) -> void:
+	status_label.text = "%s\n%s" % [_profile_summary(GameState.profile), message]
+
+
+func _connect_ad_signals() -> void:
+	if not AdService.interstitial_closed.is_connected(_on_interstitial_closed):
+		AdService.interstitial_closed.connect(_on_interstitial_closed)
+	if not AdService.interstitial_failed.is_connected(_on_interstitial_failed):
+		AdService.interstitial_failed.connect(_on_interstitial_failed)
+
+
+func _on_interstitial_closed(slot_key: String) -> void:
+	if not pending_home_exit or slot_key != "interstitial_run_end":
+		return
+
+	pending_home_exit = false
+	GameState.complete_run_end_interstitial()
+	SaveService.persist()
+	get_tree().current_scene.show_home()
+
+
+func _on_interstitial_failed(slot_key: String, _reason: String) -> void:
+	if not pending_home_exit or slot_key != "interstitial_run_end":
+		return
+
+	pending_home_exit = false
+	GameState.abandon_run_end_interstitial()
+	SaveService.persist()
+	get_tree().current_scene.show_home()
 
 
 func _build_meta_description(definition: Dictionary) -> String:

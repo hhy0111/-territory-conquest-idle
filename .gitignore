@@ -14,3 +14,10 @@ logic_stdout.log
 logic_stderr.log
 ui_smoke_stdout.log
 ui_smoke_stderr.log
+
+/.exports/
+/.reports/
+/build/android/
+/.local/
+/android/
+/android_preofficial_template_fix_20260321/build/

@@ -7,8 +7,8 @@ var hint_label: Label
 var message_label: Label
 var detail_body: VBoxContainer
 var tile_grid: GridContainer
-var active_event: Dictionary = {}
 var selected_coord_key := ""
+var pending_rewarded_reroll := false
 
 
 func _ready() -> void:
@@ -25,6 +25,7 @@ func _ready() -> void:
 		get_tree().current_scene.show_run_upgrade()
 		return
 
+	_connect_ad_signals()
 	UISkin.install_screen_background(self, UISkin.screen_background("run"), Color(0.03, 0.04, 0.06, 0.66))
 	_build_ui()
 	_refresh_view("Choose a frontier tile to prepare the next action.")
@@ -114,7 +115,6 @@ func _build_ui() -> void:
 func _refresh_view(message: String = "") -> void:
 	var run: Dictionary = GameState.active_run
 	if run.is_empty():
-		active_event = {}
 		get_tree().current_scene.show_result()
 		return
 
@@ -131,7 +131,7 @@ func _refresh_view(message: String = "") -> void:
 	_ensure_selected_tile(tiles)
 	_render_board(run, tile_defs)
 
-	if not active_event.is_empty():
+	if GameState.has_pending_event():
 		hint_label.text = "Resolve the event. Choices are final and apply immediately."
 		_render_active_event()
 		return
@@ -320,9 +320,10 @@ func _render_selected_tile(tile_defs: Dictionary, tiles: Dictionary) -> void:
 
 
 func _render_active_event() -> void:
-	var event_def: Dictionary = active_event.get("event", {})
-	var coord_key := String(active_event.get("coord_key", ""))
-	var tile_type := String(active_event.get("tile_type", "event"))
+	var pending_event: Dictionary = GameState.get_pending_event()
+	var event_def: Dictionary = pending_event.get("event", {})
+	var coord_key := String(pending_event.get("coord_key", ""))
+	var tile_type := String(pending_event.get("tile_type", "event"))
 
 	var banner := PanelContainer.new()
 	UISkin.apply_panel_style(banner, "popup")
@@ -382,6 +383,13 @@ func _render_active_event() -> void:
 		button.pressed.connect(_on_event_choice_pressed.bind(coord_key, choice_id))
 		content.add_child(button)
 
+	var reroll_button := Button.new()
+	reroll_button.custom_minimum_size = Vector2(0, 70)
+	UISkin.apply_button_style(reroll_button, "secondary")
+	reroll_button.pressed.connect(_on_event_reroll_pressed)
+	_configure_event_reroll_button(reroll_button, pending_event)
+	detail_body.add_child(reroll_button)
+
 
 func _ensure_selected_tile(tiles: Dictionary) -> void:
 	if not selected_coord_key.is_empty() and tiles.has(selected_coord_key):
@@ -406,7 +414,7 @@ func _selectable_coord_keys(tiles: Dictionary) -> Array:
 
 
 func _on_tile_preview_pressed(coord_key: String) -> void:
-	if active_event.is_empty():
+	if not GameState.has_pending_event():
 		selected_coord_key = coord_key
 		_refresh_view(message_label.text)
 
@@ -422,12 +430,10 @@ func _on_selected_tile_resolve_pressed() -> void:
 
 	match String(result.get("kind", "")):
 		"event":
-			active_event = result.duplicate(true)
 			SaveService.persist()
 			_refresh_view(String(result.get("message", "Choose an event option.")))
 			return
 		"utility":
-			active_event = {}
 			if GameState.has_pending_run_upgrade():
 				SaveService.persist()
 				get_tree().current_scene.show_run_upgrade()
@@ -441,7 +447,6 @@ func _on_selected_tile_resolve_pressed() -> void:
 			_refresh_view(String(result.get("message", "Utility tile resolved.")))
 			return
 		"combat":
-			active_event = {}
 			SaveService.persist()
 			get_tree().current_scene.show_combat()
 			return
@@ -456,7 +461,6 @@ func _on_event_choice_pressed(coord_key: String, choice_id: String) -> void:
 		_refresh_view(String(result.get("message", "Event choice failed.")))
 		return
 
-	active_event = {}
 	if GameState.has_pending_run_upgrade():
 		SaveService.persist()
 		get_tree().current_scene.show_run_upgrade()
@@ -469,6 +473,20 @@ func _on_event_choice_pressed(coord_key: String, choice_id: String) -> void:
 
 	SaveService.persist()
 	_refresh_view(String(result.get("message", "Event resolved.")))
+
+
+func _on_event_reroll_pressed() -> void:
+	if pending_rewarded_reroll:
+		return
+	if not AdService.is_rewarded_ready():
+		_refresh_view("Rewarded reroll is not ready.")
+		return
+	pending_rewarded_reroll = true
+	_refresh_view("Opening rewarded reroll...")
+	if not AdService.show_rewarded("rewarded_bonus_reroll"):
+		pending_rewarded_reroll = false
+		_refresh_view("Rewarded reroll could not be shown.")
+		return
 
 
 func _on_retreat_pressed() -> void:
@@ -588,3 +606,55 @@ func _join_segments(segments: Array) -> String:
 			text += ", "
 		text += String(segments[index])
 	return text
+
+
+func _configure_event_reroll_button(button: Button, pending_event: Dictionary) -> void:
+	var level := int(GameState.active_run.get("level", 1))
+	var ad_state: Dictionary = GameState.active_run.get("ad_state", {})
+	var reroll_used := bool(ad_state.get("rewarded_bonus_reroll_used", false))
+	var candidate_count := int(pending_event.get("candidate_count", 0))
+	var reroll_available := GameState.can_use_rewarded_reroll() and AdService.is_rewarded_ready()
+
+	if pending_rewarded_reroll:
+		button.text = "Rewarded Reroll In Progress"
+	elif reroll_used:
+		button.text = "Rewarded Reroll Used"
+	elif candidate_count <= 1:
+		button.text = "No Alternate Event Reroll"
+	elif level < 3:
+		button.text = "Rewarded Reroll Unlocks at Level 3"
+	elif not AdService.is_rewarded_ready():
+		button.text = "Rewarded Reroll Unavailable"
+	else:
+		button.text = "Watch Ad: Reroll Event"
+
+	button.disabled = pending_rewarded_reroll or not reroll_available
+
+
+func _connect_ad_signals() -> void:
+	if not AdService.rewarded_completed.is_connected(_on_rewarded_completed):
+		AdService.rewarded_completed.connect(_on_rewarded_completed)
+	if not AdService.rewarded_failed.is_connected(_on_rewarded_failed):
+		AdService.rewarded_failed.connect(_on_rewarded_failed)
+
+
+func _on_rewarded_completed(slot_key: String) -> void:
+	if not pending_rewarded_reroll or slot_key != "rewarded_bonus_reroll":
+		return
+
+	pending_rewarded_reroll = false
+	var result := GameState.use_rewarded_reroll()
+	if not result.get("ok", false):
+		_refresh_view(String(result.get("message", "Rewarded reroll failed.")))
+		return
+
+	SaveService.persist()
+	_refresh_view(String(result.get("message", "Rerolled event choices.")))
+
+
+func _on_rewarded_failed(slot_key: String, _reason: String) -> void:
+	if not pending_rewarded_reroll or slot_key != "rewarded_bonus_reroll":
+		return
+
+	pending_rewarded_reroll = false
+	_refresh_view("Rewarded reroll could not be completed.")

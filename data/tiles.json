@@ -52,7 +52,7 @@
     "capture_bonus": { "gold_flat": 3 },
     "risk_delta": 4,
     "enemy_pool": [],
-    "event_pool": ["ruined_caravan", "sealed_cache", "frontier_scribes"],
+    "event_pool": ["ruined_caravan", "sealed_cache", "frontier_scribes", "field_hospital"],
     "tags": ["event", "recovery"]
   },
   {
@@ -66,7 +66,7 @@
     "capture_bonus": { "gold_flat": 4 },
     "risk_delta": 6,
     "enemy_pool": [],
-    "event_pool": ["blood_shrine", "cursed_banner", "oath_stone"],
+    "event_pool": ["blood_shrine", "cursed_banner", "oath_stone", "war_drum_totem"],
     "tags": ["event", "risk"]
   },
   {
@@ -78,7 +78,7 @@
     "base_threat": 0.6,
     "base_reward": { "gold": [4, 8], "xp": [8, 12] },
     "capture_bonus": {},
-    "utility_effect": { "heal_percent": 0.12, "attack_flat": 2, "danger_delta": -5 },
+    "utility_effect": { "heal_percent": 0.18, "attack_flat": 2, "armor_flat": 1, "danger_delta": -6 },
     "risk_delta": -2,
     "enemy_pool": [],
     "event_pool": [],
@@ -93,7 +93,7 @@
     "base_threat": 0.5,
     "base_reward": { "gold": [0, 0], "xp": [6, 10] },
     "capture_bonus": {},
-    "utility_effect": { "heal_percent": 0.25, "gold_flat": 10, "danger_delta": -4 },
+    "utility_effect": { "heal_percent": 0.32, "gold_flat": 10, "danger_delta": -5 },
     "risk_delta": -2,
     "enemy_pool": [],
     "event_pool": [],
@@ -152,7 +152,7 @@
     "capture_bonus": { "xp_flat": 3 },
     "risk_delta": 7,
     "enemy_pool": [],
-    "event_pool": ["rift_tithe", "survivor_encampment", "smuggler_contract"],
+    "event_pool": ["rift_tithe", "survivor_encampment", "smuggler_contract", "signal_beacon"],
     "tags": ["event", "late", "high_risk"]
   }
 ]

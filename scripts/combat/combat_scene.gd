@@ -35,6 +35,7 @@ var remaining_events: Array = []
 var log_lines: Array = []
 var final_result: Dictionary = {}
 var battle_started := false
+var pending_rewarded_revive := false
 
 
 func _ready() -> void:
@@ -42,6 +43,7 @@ func _ready() -> void:
 		get_tree().current_scene.show_run()
 		return
 
+	_connect_ad_signals()
 	UISkin.install_screen_background(self, UISkin.screen_background("combat"), Color(0.03, 0.04, 0.05, 0.72))
 	_build_ui()
 	_load_pending_combat()
@@ -177,7 +179,7 @@ func _load_pending_combat() -> void:
 	battle_started = false
 
 	var enemy: Dictionary = pending_combat.get("enemy", {})
-	var player: Dictionary = GameState.active_run.get("player", {})
+	var player: Dictionary = pending_combat.get("player_snapshot", GameState.active_run.get("player", {}))
 	var battle_result: Dictionary = pending_combat.get("battle_result", {})
 	var is_boss := bool(pending_combat.get("is_boss", false))
 	var enemy_skills: Array = enemy.get("skills", [])
@@ -220,12 +222,17 @@ func _load_pending_combat() -> void:
 	)
 
 	if is_boss:
-		status_label.text = "%s\n%s\nReward preview: +%s essence, +%s sigils, %s relic pick(s)." % [
+		var rally_suffix := ""
+		var rally_heal := int(pending_combat.get("pre_boss_rally_heal", 0))
+		if rally_heal > 0:
+			rally_suffix = "\nFrontline Rally: +%s HP before the clash." % rally_heal
+		status_label.text = "%s\n%s\nReward preview: +%s essence, +%s sigils, %s relic pick(s).%s" % [
 			String(enemy.get("trait_name", "Boss Trait")),
 			String(enemy.get("trait_summary", enemy.get("description", ""))),
 			int(pending_combat.get("boss_reward_essence", 0)),
 			int(pending_combat.get("boss_reward_sigils", 0)),
-			int(pending_combat.get("boss_reward_relics", 0))
+			int(pending_combat.get("boss_reward_relics", 0)),
+			rally_suffix
 		]
 	else:
 		status_label.text = "Press Engage to resolve the encounter."
@@ -237,6 +244,8 @@ func _load_pending_combat() -> void:
 
 
 func _on_primary_pressed() -> void:
+	if pending_rewarded_revive:
+		return
 	if not final_result.is_empty():
 		_continue_after_battle()
 		return
@@ -282,10 +291,7 @@ func _on_step_timer_timeout() -> void:
 func _finalize_battle() -> void:
 	final_result = GameState.complete_pending_combat()
 	SaveService.persist()
-	primary_button.text = "Continue"
-	primary_button.disabled = false
-	retreat_button.disabled = true
-	status_label.text = String(final_result.get("message", "Combat resolved."))
+	_refresh_post_battle_actions()
 	var battle_result: Dictionary = pending_combat.get("battle_result", {})
 	var final_player_state: Dictionary = battle_result.get("final_player_state", _fallback_actor_state(GameState.active_run.get("player", {})))
 	var final_enemy_state: Dictionary = battle_result.get("final_enemy_state", _fallback_actor_state(pending_combat.get("enemy", {})))
@@ -327,9 +333,67 @@ func _continue_after_battle() -> void:
 
 
 func _on_retreat_pressed() -> void:
+	if pending_rewarded_revive:
+		return
+	if not final_result.is_empty() and not final_result.get("victory", false) and _can_offer_rewarded_revive():
+		pending_rewarded_revive = true
+		primary_button.disabled = true
+		retreat_button.disabled = true
+		status_label.text = "Opening rewarded revive..."
+		if not AdService.show_rewarded("rewarded_revive"):
+			pending_rewarded_revive = false
+			_refresh_post_battle_actions("Rewarded revive is not ready.")
+			return
+
+		return
+
 	GameState.finish_run(false)
 	SaveService.persist()
 	get_tree().current_scene.show_result()
+
+
+func _can_offer_rewarded_revive() -> bool:
+	return not final_result.is_empty() and not final_result.get("victory", false) and AdService.is_rewarded_ready() and GameState.can_use_rewarded_revive()
+
+
+func _refresh_post_battle_actions(message: String = "") -> void:
+	primary_button.text = "Continue" if final_result.get("victory", false) else "End Run"
+	primary_button.disabled = false
+	var revive_available := _can_offer_rewarded_revive()
+	retreat_button.text = "Revive (Ad)" if revive_available else "Retreat"
+	retreat_button.disabled = not revive_available
+	status_label.text = message if not message.is_empty() else String(final_result.get("message", "Combat resolved."))
+	if revive_available:
+		status_label.text += "\nRewarded revive is available: restore 50% HP and reduce danger by 10."
+
+
+func _connect_ad_signals() -> void:
+	if not AdService.rewarded_completed.is_connected(_on_rewarded_completed):
+		AdService.rewarded_completed.connect(_on_rewarded_completed)
+	if not AdService.rewarded_failed.is_connected(_on_rewarded_failed):
+		AdService.rewarded_failed.connect(_on_rewarded_failed)
+
+
+func _on_rewarded_completed(slot_key: String) -> void:
+	if slot_key != "rewarded_revive" or not pending_rewarded_revive:
+		return
+
+	pending_rewarded_revive = false
+	var revive_result := GameState.apply_rewarded_revive()
+	if not revive_result.get("ok", false):
+		_refresh_post_battle_actions(String(revive_result.get("message", "Rewarded revive failed.")))
+		return
+
+	SaveService.persist()
+	get_tree().current_scene.show_run()
+
+
+func _on_rewarded_failed(slot_key: String, _reason: String) -> void:
+	if slot_key != "rewarded_revive" or not pending_rewarded_revive:
+		return
+
+	pending_rewarded_revive = false
+	_refresh_post_battle_actions("Rewarded revive could not be completed.")
 
 
 func _format_event_line(event: Dictionary) -> String:

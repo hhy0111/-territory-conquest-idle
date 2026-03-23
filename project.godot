@@ -20,7 +20,12 @@ GameState="*res://scripts/autoload/game_state.gd"
 SaveService="*res://scripts/autoload/save_service.gd"
 DataService="*res://scripts/autoload/data_service.gd"
 RngService="*res://scripts/autoload/rng_service.gd"
+AnalyticsService="*res://scripts/autoload/analytics_service.gd"
 AdService="*res://scripts/autoload/ad_service.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/territory_conquest_ads/plugin.cfg")
 
 [display]
 

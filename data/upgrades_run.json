@@ -25,7 +25,7 @@
     "name": "Battlefield Medicine",
     "rarity": "common",
     "max_rank": 4,
-    "effect": { "max_hp_flat": 12, "heal_flat": 12 }
+    "effect": { "max_hp_flat": 16, "heal_flat": 18 }
   },
   {
     "id": "run_critical_path",
@@ -67,7 +67,7 @@
     "name": "Rallying Tonic",
     "rarity": "common",
     "max_rank": 3,
-    "effect": { "heal_flat": 16, "attack_flat": 2 }
+    "effect": { "heal_flat": 20, "attack_flat": 2, "armor_flat": 1 }
   },
   {
     "id": "run_ember_doctrine",
@@ -124,5 +124,47 @@
     "rarity": "rare",
     "max_rank": 1,
     "effect": { "grant_trait": "march_supremacy" }
+  },
+  {
+    "id": "run_siege_calibration",
+    "name": "Siege Calibration",
+    "rarity": "common",
+    "max_rank": 4,
+    "effect": { "attack_flat": 2, "crit_rate": 0.02 }
+  },
+  {
+    "id": "run_reinforced_kits",
+    "name": "Reinforced Kits",
+    "rarity": "common",
+    "max_rank": 4,
+    "effect": { "armor_flat": 2, "max_hp_flat": 10 }
+  },
+  {
+    "id": "run_forager_lines",
+    "name": "Forager Lines",
+    "rarity": "common",
+    "max_rank": 3,
+    "effect": { "heal_flat": 20, "gold_flat": 12 }
+  },
+  {
+    "id": "run_dominion_ledger",
+    "name": "Dominion Ledger",
+    "rarity": "rare",
+    "max_rank": 3,
+    "effect": { "territory_power": 0.04, "essence_on_run_end_flat": 4 }
+  },
+  {
+    "id": "run_sigil_raiders",
+    "name": "Sigil Raiders",
+    "rarity": "rare",
+    "max_rank": 2,
+    "effect": { "attack_speed": 0.06, "sigils_on_run_end_flat": 1 }
+  },
+  {
+    "id": "run_execution_drill",
+    "name": "Execution Drill",
+    "rarity": "rare",
+    "max_rank": 1,
+    "effect": { "grant_trait": "execution_order" }
   }
 ]

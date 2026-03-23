@@ -1,0 +1,70 @@
+{
+	"platforms": {
+		"default": {
+			"app_id": "",
+			"package_name": "com.hhy0111.territoryconquestidle",
+			"consent_enabled": true,
+			"bridge_singleton": "",
+			"app_open_resume_threshold_seconds": 180
+		},
+		"android": {
+			"app_id": "ca-app-pub-4402708884038037~2144372327",
+			"package_name": "com.hhy0111.territoryconquestidle",
+			"consent_enabled": true,
+			"bridge_singleton": "TerritoryConquestAds",
+			"app_open_resume_threshold_seconds": 180,
+			"test_device_ids": [],
+			"min_sdk": 23,
+			"maven_dependencies": [
+				"com.google.android.gms:play-services-ads:24.9.0",
+				"com.google.android.ump:user-messaging-platform:4.0.0"
+			],
+			"maven_repositories": [
+				"https://dl.google.com/dl/android/maven2/",
+				"https://repo1.maven.org/maven2/"
+			]
+		}
+	},
+	"qa": {
+		"enabled": false,
+		"consent": {
+			"status": "",
+			"detail": ""
+		},
+		"slot_outcomes": {}
+	},
+	"slots": {
+		"app_open_launch": {
+			"format": "app_open",
+			"unit_id": "ca-app-pub-4402708884038037/8456964387",
+			"enabled": true
+		},
+		"interstitial_run_end": {
+			"format": "interstitial",
+			"unit_id": "ca-app-pub-4402708884038037/8437750689",
+			"enabled": true
+		},
+		"rewarded_bonus_reroll": {
+			"format": "rewarded",
+			"unit_id": "ca-app-pub-4402708884038037/7699384083",
+			"enabled": true
+		},
+		"rewarded_double_run_reward": {
+			"format": "rewarded",
+			"unit_id": "ca-app-pub-4402708884038037/5585456719",
+			"enabled": true
+		},
+		"rewarded_revive": {
+			"format": "rewarded",
+			"unit_id": "ca-app-pub-4402708884038037/1017458066",
+			"enabled": true
+		}
+	},
+	"analytics_events": {
+		"ad_bridge_bound": "ad_bridge_bound",
+		"ad_consent_status": "ad_consent_status",
+		"ad_show_attempt": "ad_show_attempt",
+		"ad_show_completed": "ad_show_completed",
+		"ad_show_failed": "ad_show_failed"
+	}
+}
